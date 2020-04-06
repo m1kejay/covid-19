@@ -17,8 +17,7 @@ knitr::opts_chunk$set(
 ```
 
 
-This analysis is a brief look at the covid-19 data. I am ***NOT*** an expert and I make no claims to the accuracy of this analysis. I simply wanted to better understand what was happening and to better contextualise the deluge of daily news reports containing numbers of cases.
-
+This analysis is a brief look at the covid-19 data. 
 
 # Importing and cleaning data
 
@@ -308,12 +307,12 @@ max_cases <- max(correct_days$cases)
 ann_x <-
   tibble::tribble(
     ~continent, ~country_code, ~label, ~n_days, ~cases,
-    "Europe", "SE", "Day", max_days / 2, 0L
+    "Europe", "RS", "Day", max_days / 2, 0L
   )
 ann_y <-
   tibble::tribble(
     ~continent, ~country_code, ~label, ~n_days, ~cases,
-    "Europe", "SE", "Cases", 0L, max_cases / 2
+    "Europe", "RS", "Cases", 0L, max_cases / 2
   )
 
 # Define plot
@@ -1198,9 +1197,92 @@ ggsave(filename = "./output/2020-03.png", plot = plot_wrapped, height = 6.5, wid
 ```{r}
 knitr::include_graphics("./output/2020-03.png")
 ```
+```{r}
+max(complete_df$date)
+```
+
 
 ```{r apr, eval = FALSE, echo = TRUE}
-date_seq <- c("2020-03-01", "2020-04-01")
+date_seq <- seq(as.Date("2020-04-01"), max(complete_df$date), 1)
+
+lims <- c(min(complete_df$per_capita[(complete_df$per_capita > 0 & (complete_df$date >= "2020-04-01" & complete_df$date <= "2020-04-30"))], na.rm = T), max(complete_df$per_capita[complete_df$date >= "2020-04-01" & complete_df$date <= "2020-04-30"], na.rm = T))
+
+
+plot_list <- list()
+
+for (i in 1:length(date_seq)) {
+  
+  plot_label = complete_df$label[which.max(complete_df$date == date_seq[i])]
+  
+  filtered_df <-  
+    complete_df %>%
+    filter(date == date_seq[i]) %>%
+    filter(per_capita > 0)
+  
+plot_list[[i]] <-
+  ggplot() +
+  geom_sf(data = country_map, aes(geometry = geometry), fill = NA, colour = NA) +
+  geom_sf(data = filtered_df, aes(fill = per_capita, geometry = geometry), colour = NA) +
+  coord_sf(
+    crs = 4326,
+    expand = F,
+    clip = "off"
+  ) +
+  ggthemes::theme_map() +
+  scale_fill_continuous_sequential(
+    palette = "Inferno",
+    name = "Cases per capita",
+    limits = lims,
+    trans = "log10",
+    na.value = NA,
+    breaks = c(0.1, 10, 1000),
+    labels = c(0.1, 10, 1000),
+    guide = guide_colorbar(
+      frame.colour = "black",
+      frame.linewidth = 1,
+      frame.linetype = 1,
+      draw.llim = FALSE,
+      draw.ulim = FALSE
+    )
+  ) +
+  theme(
+    legend.position = "bottom"
+  )  +
+    annotate(
+      geom = "text",
+      x = -124.849,
+      y = 49.00243 + 3,
+      label = plot_label,
+      vjust = 0.5,
+      hjust = 0, 
+      size = 2.75,
+      family = "sans"
+    )
+}
+
+plot_wrapped <-
+  wrap_plots(plot_list, guides = "collect") +
+  plot_annotation(title = "A month of coronavirus", 
+                  subtitle = "Coronavirus cases at the county level", 
+                  caption = glue("Last updated 2020-04-03\nCounty-level covid-19 data: https://usafacts.org/")) & 
+  theme(legend.position = "bottom", 
+        legend.justification = "right",
+        plot.caption = element_text(colour = "grey30"),
+        plot.title = element_text(size = ceiling(12 * 1.1), face = "bold"),
+        plot.subtitle = element_text(size = ceiling(12 * 1.05), colour = "grey30")
+        )
+
+
+ggsave(filename = "./output/march-april-comparison.png", plot = plot_wrapped, height = 5, width = 10, unit = "in", dpi = 320)
+```
+
+
+```{r}
+knitr::include_graphics("./output/march-april-comparison.png")
+```
+
+```{r}
+date_seq <- seq(as.Date("2020-04-01"), as.Date(max(complete_df$date)), by = 1)
 
 lims <- c(min(complete_df$per_capita[(complete_df$per_capita > 0 & (complete_df$date >= "2020-01-01" & complete_df$date <= "2020-04-30"))], na.rm = T), max(complete_df$per_capita[complete_df$date >= "2020-01-01" & complete_df$date <= "2020-04-30"], na.rm = T))
 
@@ -1258,7 +1340,7 @@ plot_list[[i]] <-
 }
 
 plot_wrapped <-
-  wrap_plots(plot_list, ncol = 2, nrow = 1, guides = "collect") +
+  wrap_plots(plot_list, guides = "collect") +
   plot_annotation(title = "A month of coronavirus", 
                   subtitle = "Coronavirus cases at the county level", 
                   caption = glue("Last updated 2020-04-03\nCounty-level covid-19 data: https://usafacts.org/")) & 
@@ -1270,12 +1352,7 @@ plot_wrapped <-
         )
 
 
-ggsave(filename = "./output/march-april-comparison.png", plot = plot_wrapped, height = 5, width = 10, unit = "in", dpi = 320)
-```
-
-
-```{r}
-knitr::include_graphics("./output/march-april-comparison.png")
+ggsave(filename = glue("./output/{min(date_seq)}-{max(date_seq)}.png"), plot = plot_wrapped, height = 5, width = 10, unit = "in", dpi = 320)
 ```
 
 
@@ -1284,13 +1361,13 @@ knitr::include_graphics("./output/march-april-comparison.png")
 ```{r fig.height = 7, fig.width = 10}
 complete_df %>%
   filter(state_abb %in% c("IL")) %>%
-  filter(date >= max(date) - days(30)) %>%
+  filter(date >= max(date) - days(60)) %>%
   ggplot(aes(fill = per_capita)) +
   geom_sf(aes(geometry = geometry)) +
   coord_sf(crs = 4326, 
            expand = TRUE) +
   scale_fill_continuous_sequential(
-    palette = "Greens",
+    palette = "Inferno",
     name = "Cases per capita",
     trans = "log10",
     na.value = "white",
@@ -1309,7 +1386,7 @@ complete_df %>%
     legend.position = "bottom",
     strip.background = element_blank()
   ) +
-  facet_wrap(date ~ ., nrow = 3) 
+  facet_wrap(date ~ ., nrow = 6) 
 ```
 
 
@@ -1319,13 +1396,13 @@ complete_df %>%
 #, "NJ", "PA"
 complete_df %>%
   filter(state_abb %in% c("NY")) %>%
-  filter(date > max(date) - days(30)) %>%
+  filter(date > max(date) - days(60)) %>%
   ggplot(aes(fill = per_capita)) +
   geom_sf(aes(geometry = geometry)) +
   coord_sf(crs = 4326, 
            expand = TRUE) +
   scale_fill_continuous_sequential(
-    palette = "Greens",
+    palette = "Inferno",
     name = "Cases per capita",
     trans = "log10",
     na.value = "white",
@@ -1344,6 +1421,6 @@ complete_df %>%
     legend.position = "bottom",
     strip.background = element_blank()
   ) +
-  facet_wrap(date ~ ., nrow = 3)
+  facet_wrap(date ~ ., nrow = 6)
 ```
 

@@ -1,13 +1,9 @@
 Cursory analysis of COVID-19 data
 ================
 Michael Jay
-2020-04-05
+2020-04-06
 
-This analysis is a brief look at the covid-19 data. I am ***NOT*** an
-expert and I make no claims to the accuracy of this analysis. I simply
-wanted to better understand what was happening and to better
-contextualise the deluge of daily news reports containing numbers of
-cases.
+This analysis is a brief look at the covid-19 data.
 
 # Importing and cleaning data
 
@@ -99,20 +95,20 @@ df <- read_csv(file_name, na = "NaN")
 df
 ```
 
-    ## # A tibble: 26,492 x 7
+    ## # A tibble: 27,150 x 7
     ##    case_type country     date       cases n_days continent country_code
     ##    <chr>     <chr>       <date>     <dbl>  <dbl> <chr>     <chr>       
-    ##  1 confirmed Afghanistan 2020-01-22     0    -73 Asia      AF          
-    ##  2 confirmed Afghanistan 2020-01-23     0    -72 Asia      AF          
-    ##  3 confirmed Afghanistan 2020-01-24     0    -71 Asia      AF          
-    ##  4 confirmed Afghanistan 2020-01-25     0    -70 Asia      AF          
-    ##  5 confirmed Afghanistan 2020-01-26     0    -69 Asia      AF          
-    ##  6 confirmed Afghanistan 2020-01-27     0    -68 Asia      AF          
-    ##  7 confirmed Afghanistan 2020-01-28     0    -67 Asia      AF          
-    ##  8 confirmed Afghanistan 2020-01-29     0    -66 Asia      AF          
-    ##  9 confirmed Afghanistan 2020-01-30     0    -65 Asia      AF          
-    ## 10 confirmed Afghanistan 2020-01-31     0    -64 Asia      AF          
-    ## # ... with 26,482 more rows
+    ##  1 confirmed Afghanistan 2020-01-22     0    -74 Asia      AF          
+    ##  2 confirmed Afghanistan 2020-01-23     0    -73 Asia      AF          
+    ##  3 confirmed Afghanistan 2020-01-24     0    -72 Asia      AF          
+    ##  4 confirmed Afghanistan 2020-01-25     0    -71 Asia      AF          
+    ##  5 confirmed Afghanistan 2020-01-26     0    -70 Asia      AF          
+    ##  6 confirmed Afghanistan 2020-01-27     0    -69 Asia      AF          
+    ##  7 confirmed Afghanistan 2020-01-28     0    -68 Asia      AF          
+    ##  8 confirmed Afghanistan 2020-01-29     0    -67 Asia      AF          
+    ##  9 confirmed Afghanistan 2020-01-30     0    -66 Asia      AF          
+    ## 10 confirmed Afghanistan 2020-01-31     0    -65 Asia      AF          
+    ## # ... with 27,140 more rows
 
 This code block takes the raw data from github and does a few key
 things:
@@ -322,12 +318,12 @@ max_cases <- max(correct_days$cases)
 ann_x <-
   tibble::tribble(
     ~continent, ~country_code, ~label, ~n_days, ~cases,
-    "Europe", "SE", "Day", max_days / 2, 0L
+    "Europe", "RS", "Day", max_days / 2, 0L
   )
 ann_y <-
   tibble::tribble(
     ~continent, ~country_code, ~label, ~n_days, ~cases,
-    "Europe", "SE", "Cases", 0L, max_cases / 2
+    "Europe", "RS", "Cases", 0L, max_cases / 2
   )
 
 # Define plot
@@ -1236,7 +1232,93 @@ knitr::include_graphics("./output/2020-03.png")
 <img src="./output/2020-03.png" width="1500" />
 
 ``` r
-date_seq <- c("2020-03-01", "2020-04-01")
+max(complete_df$date)
+```
+
+    ## [1] "2020-04-05"
+
+``` r
+date_seq <- seq(as.Date("2020-04-01"), max(complete_df$date), 1)
+
+lims <- c(min(complete_df$per_capita[(complete_df$per_capita > 0 & (complete_df$date >= "2020-04-01" & complete_df$date <= "2020-04-30"))], na.rm = T), max(complete_df$per_capita[complete_df$date >= "2020-04-01" & complete_df$date <= "2020-04-30"], na.rm = T))
+
+
+plot_list <- list()
+
+for (i in 1:length(date_seq)) {
+  
+  plot_label = complete_df$label[which.max(complete_df$date == date_seq[i])]
+  
+  filtered_df <-  
+    complete_df %>%
+    filter(date == date_seq[i]) %>%
+    filter(per_capita > 0)
+  
+plot_list[[i]] <-
+  ggplot() +
+  geom_sf(data = country_map, aes(geometry = geometry), fill = NA, colour = NA) +
+  geom_sf(data = filtered_df, aes(fill = per_capita, geometry = geometry), colour = NA) +
+  coord_sf(
+    crs = 4326,
+    expand = F,
+    clip = "off"
+  ) +
+  ggthemes::theme_map() +
+  scale_fill_continuous_sequential(
+    palette = "Inferno",
+    name = "Cases per capita",
+    limits = lims,
+    trans = "log10",
+    na.value = NA,
+    breaks = c(0.1, 10, 1000),
+    labels = c(0.1, 10, 1000),
+    guide = guide_colorbar(
+      frame.colour = "black",
+      frame.linewidth = 1,
+      frame.linetype = 1,
+      draw.llim = FALSE,
+      draw.ulim = FALSE
+    )
+  ) +
+  theme(
+    legend.position = "bottom"
+  )  +
+    annotate(
+      geom = "text",
+      x = -124.849,
+      y = 49.00243 + 3,
+      label = plot_label,
+      vjust = 0.5,
+      hjust = 0, 
+      size = 2.75,
+      family = "sans"
+    )
+}
+
+plot_wrapped <-
+  wrap_plots(plot_list, guides = "collect") +
+  plot_annotation(title = "A month of coronavirus", 
+                  subtitle = "Coronavirus cases at the county level", 
+                  caption = glue("Last updated 2020-04-03\nCounty-level covid-19 data: https://usafacts.org/")) & 
+  theme(legend.position = "bottom", 
+        legend.justification = "right",
+        plot.caption = element_text(colour = "grey30"),
+        plot.title = element_text(size = ceiling(12 * 1.1), face = "bold"),
+        plot.subtitle = element_text(size = ceiling(12 * 1.05), colour = "grey30")
+        )
+
+
+ggsave(filename = "./output/march-april-comparison.png", plot = plot_wrapped, height = 5, width = 10, unit = "in", dpi = 320)
+```
+
+``` r
+knitr::include_graphics("./output/march-april-comparison.png")
+```
+
+<img src="./output/march-april-comparison.png" width="1600" />
+
+``` r
+date_seq <- seq(as.Date("2020-04-01"), as.Date(max(complete_df$date)), by = 1)
 
 lims <- c(min(complete_df$per_capita[(complete_df$per_capita > 0 & (complete_df$date >= "2020-01-01" & complete_df$date <= "2020-04-30"))], na.rm = T), max(complete_df$per_capita[complete_df$date >= "2020-01-01" & complete_df$date <= "2020-04-30"], na.rm = T))
 
@@ -1294,7 +1376,7 @@ plot_list[[i]] <-
 }
 
 plot_wrapped <-
-  wrap_plots(plot_list, ncol = 2, nrow = 1, guides = "collect") +
+  wrap_plots(plot_list, guides = "collect") +
   plot_annotation(title = "A month of coronavirus", 
                   subtitle = "Coronavirus cases at the county level", 
                   caption = glue("Last updated 2020-04-03\nCounty-level covid-19 data: https://usafacts.org/")) & 
@@ -1306,27 +1388,21 @@ plot_wrapped <-
         )
 
 
-ggsave(filename = "./output/march-april-comparison.png", plot = plot_wrapped, height = 5, width = 10, unit = "in", dpi = 320)
+ggsave(filename = glue("./output/{min(date_seq)}-{max(date_seq)}.png"), plot = plot_wrapped, height = 5, width = 10, unit = "in", dpi = 320)
 ```
-
-``` r
-knitr::include_graphics("./output/march-april-comparison.png")
-```
-
-<img src="./output/march-april-comparison.png" width="1600" />
 
 #### Chicago
 
 ``` r
 complete_df %>%
   filter(state_abb %in% c("IL")) %>%
-  filter(date >= max(date) - days(30)) %>%
+  filter(date >= max(date) - days(60)) %>%
   ggplot(aes(fill = per_capita)) +
   geom_sf(aes(geometry = geometry)) +
   coord_sf(crs = 4326, 
            expand = TRUE) +
   scale_fill_continuous_sequential(
-    palette = "Greens",
+    palette = "Inferno",
     name = "Cases per capita",
     trans = "log10",
     na.value = "white",
@@ -1345,10 +1421,10 @@ complete_df %>%
     legend.position = "bottom",
     strip.background = element_blank()
   ) +
-  facet_wrap(date ~ ., nrow = 3) 
+  facet_wrap(date ~ ., nrow = 6) 
 ```
 
-<img src="covid_files/figure-gfm/unnamed-chunk-17-1.png" width="960" />
+<img src="covid_files/figure-gfm/unnamed-chunk-19-1.png" width="960" />
 
 #### NY
 
@@ -1356,13 +1432,13 @@ complete_df %>%
 #, "NJ", "PA"
 complete_df %>%
   filter(state_abb %in% c("NY")) %>%
-  filter(date > max(date) - days(30)) %>%
+  filter(date > max(date) - days(60)) %>%
   ggplot(aes(fill = per_capita)) +
   geom_sf(aes(geometry = geometry)) +
   coord_sf(crs = 4326, 
            expand = TRUE) +
   scale_fill_continuous_sequential(
-    palette = "Greens",
+    palette = "Inferno",
     name = "Cases per capita",
     trans = "log10",
     na.value = "white",
@@ -1381,7 +1457,7 @@ complete_df %>%
     legend.position = "bottom",
     strip.background = element_blank()
   ) +
-  facet_wrap(date ~ ., nrow = 3)
+  facet_wrap(date ~ ., nrow = 6)
 ```
 
-<img src="covid_files/figure-gfm/unnamed-chunk-18-1.png" width="960" />
+<img src="covid_files/figure-gfm/unnamed-chunk-20-1.png" width="960" />
