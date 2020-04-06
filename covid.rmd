@@ -38,7 +38,7 @@ library(here) # Easier file referencing
 library(glue) # Alternative to paste0
 library(colorspace) # Colour palettes
 library(countrycode) # Get country codes to help de-clutter plots
-library(cowplot) # Organising multiple plots
+library(cowplot) # Organising multiple plots 
 library(gghighlight) # Highlight subsets
 library(ggtext) # Richer text formatting
 library(ggrepel) # Repel labels in plots
