@@ -23,7 +23,7 @@ This analysis is a brief look at the covid-19 data.
 
 Let's begin by loading packages necessary for the analysis conducted here:
 
-```{r message=FALSE, warning=FALSE}
+```{r library-import, message=FALSE, warning=FALSE}
 # Libraries used in this analysis
 
 library(sf) # Mapping
@@ -48,7 +48,9 @@ library(wbstats) # Useful for getting GDP stats
 ```
 
 
-Before we can do any plotting, we of course have to import the data and do a little bit of tidying. The covid-19 data comes from John Hopkins' github repository here: https://github.com/CSSEGISandData/COVID-19/.
+## Country-level plots
+
+Before we can do any plotting, we of course have to import the data and do a little bit of tidying. Country-level covid-19 data comes from John Hopkins' github repository which is located here: https://github.com/CSSEGISandData/COVID-19/.
 
 ```{r data-import}
 # location of data
@@ -105,6 +107,9 @@ write_csv(df, file_name)
 # Redefining na  so NA gets encoded as the country_code for Namibia
 df <- read_csv(file_name, na = "NaN")
 df
+
+# Define caption which  I'll put on most graphs
+custom_caption <- glue("Last updated {Sys.Date()}\nData: https://github.com/CSSEGISandData/COVID-19/")
 ```
 
 This code block takes the raw data from github and does a few key things:
@@ -113,23 +118,13 @@ This code block takes the raw data from github and does a few key things:
 * Converts the new dataframe from wide to long format.
 * Removes the 'Diamond Princess' (cruise ship) data. 
 * Aggregates across each country/day the number of cases. 
-* Finally it introduces two new variables: `continent` and `country_code` (using the `countrycode` package) which I can then use for plotting purposes and pulling in statistics from worldbank (toward the end of this analysis)
-
-# Some plotting
+* Finally it introduces two new variables: `continent` and `country_code` (using the `countrycode` package) which will be useful for plotting purposes and pulling in statistics from `worldbank`.
 
 Now we can move onto plotting the data...
 
-## Confirmed cases
+### Confirmed cases
 
-```{r fig.height = 6, fig.width = 7}
-# Define caption whicch I'll put on all my graphs
-custom_caption <- glue("Last updated {Sys.Date()}\nData: https://github.com/CSSEGISandData/COVID-19/")
-
-# Pull country with max cases for africa
-# max_africa <- df %>%
-#   filter(continent == "Africa", case_type == "confirmed") %>%
-#   filter(cases == max(cases)) %>%
-#   pull(country)
+```{r days-vs-confirmed-cases, fig.height = 6, fig.width = 7}
 
 days_vs_confirmed <-
   df %>%
@@ -182,17 +177,16 @@ days_vs_confirmed %>%
   )
 ```
 
-So we can see some correlation between the number of days since the first case for a given coutnry and the total number of cases. 
+So we can see some correlation between the number of days since the first case for a given country and the total number of cases. 
 
 Next let's make a lollipop chart so we can better appreciate cases on a country-by-country basis:
 
-
-```{r fig.height = 11.5, fig.width = 8}
+```{r confirmed-cases-lollipop, fig.height = 11.5, fig.width = 8}
 # Minor breaks for log-scale axis grid
 minor_breaks <- rep(1:10, 31) * (10^rep(0:30, each = 30))
 
 
-
+# Plot
 df %>%
   group_by(country) %>%
   filter(case_type == "confirmed", cases > 0) %>%
@@ -265,10 +259,7 @@ df %>%
 
 Let's get a bird's eye view for all countries in the dataset:
 
-
-
- 
-```{r fig.height = 11, fig.width = 10.5}
+```{r country-by-country, fig.height = 11, fig.width = 10.5}
 # Mutate n_days so it makes more sense (to me)
 correct_days <-
   df %>%
@@ -307,12 +298,12 @@ max_cases <- max(correct_days$cases)
 ann_x <-
   tibble::tribble(
     ~continent, ~country_code, ~label, ~n_days, ~cases,
-    "Europe", "RS", "Day", max_days / 2, 0L
+    "Oceania", "PG", "Day", max_days / 2, 0L
   )
 ann_y <-
   tibble::tribble(
     ~continent, ~country_code, ~label, ~n_days, ~cases,
-    "Europe", "RS", "Cases", 0L, max_cases / 2
+    "Oceania", "PG", "Cases", 0L, max_cases / 2
   )
 
 # Define plot
@@ -432,7 +423,7 @@ p_grob <- ggplotGrob(p)
 
 # Filter out unwanted facet labels
 # This will also require manually updating if new countries are added
-p_filtered <- gtable_filter_remove(p_grob, name = paste0("axis-l-", 1:12, "-1"), trim = FALSE)
+p_filtered <- gtable_filter_remove(p_grob, name = paste0("axis-l-", 1:13, "-1"), trim = FALSE)
 p_filtered <- gtable_filter_remove(p_filtered, name = paste0("axis-b-", 2:14, "-12"), trim = FALSE)
 p_filtered <- gtable_filter_remove(p_filtered, name = paste0("axis-b-", 2:14, "-13"), trim = FALSE)
 
@@ -443,7 +434,8 @@ p_filtered_plot
 
 Has there been any slow down in the number of new cases?
 
-```{r}
+```{r daily-count-novel-cases}
+# Find sum of daily counts across all countries
 daily_cases_all <-
 df %>%
   select(case_type, country, date, cases, continent) %>%
@@ -482,8 +474,9 @@ daily_cases_all %>%
   )
 ```
 
+How does each continent contribute to the increase in novel cases?
 
-```{r fig.height = 3, fig.width = 10}
+```{r daily-count-novel-cases-continent, fig.height = 5, fig.width = 10}
 daily_cases_select <- df %>%
   select(case_type, country, date, cases, continent) %>%
   pivot_wider(
@@ -526,12 +519,15 @@ ggplot() +
   )
 ```
 
+and as a percent of cases:
+
 ```{r}
+# Arbitrary order of the fill
 order <- rev(c("Oceania", "Africa", "Americas", "Europe", "Asia"))
 
 daily_cases_select %>%
   ggplot(aes(x = date, y = total_new_cases, fill = fct_relevel(continent, order))) +
-  geom_area(position = "fill") +
+  geom_area(position = "fill", alpha = 1, colour = "grey30") +
   theme_minimal()  +
   scale_x_date(
     expand = c(0, 0.1),
@@ -555,6 +551,7 @@ daily_cases_select %>%
   )
 ```
 
+and what about some select countries?
 
 ```{r}
 daily_cases_select <- df %>%
@@ -563,7 +560,7 @@ daily_cases_select <- df %>%
     names_from = case_type,
     values_from = cases
   ) %>%
-  filter(country %in% c("China", "Italy", "US")) %>%
+  filter(country %in% c("China", "Italy", "US", "Germany")) %>%
   arrange(country, date) %>%
   group_by(country) %>%
   mutate(new_cases = confirmed - lag(confirmed)) %>%
@@ -580,7 +577,7 @@ ggplot() +
   geom_col(data = daily_cases_select, aes(x = date, y = total_new_cases, fill = country)) +
   geom_richtext(
     data = china_annotation,
-    aes(x = date-19, y = total_new_cases+22000),
+    aes(x = date-19, y = total_new_cases + 50000),
     label = "<span style='font-size:9pt'>**2020-02-13**
     <br style = 'display: block; content: ''; margin-top: 0'>
     China changes their
@@ -616,7 +613,11 @@ ggplot() +
   scale_fill_discrete_qualitative(
   )
 ```
-### Cases per capita
+(I added that annotation for China back when a blip of 15,000 daily cases was note-worthy)
+
+#### Confirmed cases per capita
+
+It's not really fair to compare absolute numbers between countries since populations vary so much. In the next code chunk I'll do some cursory examination of cases per capita (i.e. cases per 100,000 people).
 
 ```{r}
 populations <- wb_data("SP.POP.TOTL", start_date = 2017) %>%
@@ -629,12 +630,13 @@ populations <- wb_data("SP.POP.TOTL", start_date = 2017) %>%
 cases_per_capita <-
 correct_days %>%
   left_join(populations, by = "country_code") %>%
-  filter(pop > 10^6, cases >= 10) %>%
+  filter(pop > 10^6, cases >= 1) %>%
   mutate(per_capita = 100000 * (cases/pop)) 
+
 
 cases_per_capita %>%
   ggplot(aes(x = n_days, y = per_capita, group = country_code)) +
-  geom_line(alpha = 0.7) +
+  geom_line(aes(colour = continent), alpha = 0.4) +
   theme_minimal() +
   theme(
     aspect.ratio = 1
@@ -648,13 +650,54 @@ cases_per_capita %>%
   # scale_y_log10(
   #   labels = scales::label_comma()
   # ) +
-  facet_grid(. ~ continent)
+  facet_grid(. ~ continent) +
+  theme(
+    legend.position = "none",
+    panel.grid.minor.y = element_blank()
+  ) +
+  scale_colour_discrete_qualitative()
+```
+
+Not looking great for Europe... but Europe has many small countries which may 'over-emphasise' (for lack of a better word) small numbers of cases. Let's sum all of Europe and compare it to the US 
+
+```{r}
+europe_pop <- correct_days %>% left_join(populations, by = "country_code") %>% filter(continent == "Europe") %>% distinct(country_code, pop) %>% summarise(sum(pop, na.rm = T)) %>% pull() - 145934462 # excluded Russia since they're playing silly buggers
+america_pop <- correct_days %>% left_join(populations, by = "country_code") %>% filter(country_code == "US") %>% distinct(country_code, pop) %>% summarise(sum(pop, na.rm = T)) %>% pull()
+
+
+correct_days %>%
+  left_join(populations, by = "country_code") %>%
+  filter((continent == "Americas" & country_code == "US") | (continent == "Europe")) %>%
+  mutate(
+    pop = case_when(
+      continent == "Americas" ~ america_pop,
+      continent == "Europe" ~ europe_pop
+     ),
+  # Lazy renaming..
+  continent = if_else(continent == "Americas", "US", "Europe")) %>%
+  group_by(continent, date, pop) %>%
+  summarise(cases = sum(cases)) %>%
+  ungroup() %>%
+  mutate(per_capita = 100000 * (cases/pop)) %>%
+  ggplot(aes(x = date, y = per_capita, group = continent, colour = continent)) +
+  geom_line() +
+  geom_point() +
+  theme_minimal() +
+  theme(
+    aspect.ratio = 1,
+    legend.title = element_blank()
+  ) +
+  labs(
+    title = "Confirmed cases per capita",
+    y = "Cases per 100,000",
+    x = ""
+  )
 ```
 
 
-### GDP vs. confirmed cases
+#### GDP vs. cases per capita
 
-We can see from above Africa has very few cases of covid-19. Could it be that perhaps poorer countries don't have the infrastructure or resources to test for covid-19? Let's see what GDP vs confirmed cases looks like:
+We can see from above Africa has very few confirmed cases of covid-19. Could it be that perhaps poorer countries lack the infrastructure or resources to test for covid-19? Let's see what GDP vs confirmed cases looks like:
 
 ```{r}
 gdp <- wb_data("NY.GDP.PCAP.CD", start_date = 2017) %>%
@@ -663,7 +706,6 @@ gdp <- wb_data("NY.GDP.PCAP.CD", start_date = 2017) %>%
     gdp = NY.GDP.PCAP.CD,
     country_code = iso2c
   )
-
 
 df %>%
   left_join(gdp, by = "country_code") %>%
@@ -685,7 +727,7 @@ df %>%
     panel.grid.minor = element_blank(),
     aspect.ratio = 1,
     axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5),
-    legend.position = "none",
+    legend.position = "right",
     plot.caption = element_text(colour = "grey45")
   ) +
   labs(
@@ -737,7 +779,7 @@ df %>%
 
 
 
-## covid-19 associated deaths
+## Covid-19 associated deaths
 
 What's the death toll looking like?
 
@@ -760,7 +802,7 @@ labs <-
   ungroup() %>%
   arrange(desc(deaths)) %>%
   slice(1:7)
-  
+  # filter(country == "US" | country == "Germany")  
 
 # Convert countries to wide format for just countries to highlight
 df_wide_most_deaths <-
@@ -784,7 +826,7 @@ ggplot() +
     aes(x = date, y = deaths, group = country, colour = fct_reorder(country, deaths)),
     size = 1
     ) +
-  #  geom_point(data = df_wide_most_deaths,  aes(x = date, y = deaths, group = country, colour = fct_reorder(country, deaths))) +
+  geom_point(data = df_wide_most_deaths,  aes(x = date, y = deaths, group = country, colour = fct_reorder(country, deaths))) +
   theme_minimal() +
   theme(
     legend.position = "none",
@@ -813,7 +855,38 @@ ggplot() +
   )
 ```
 
-## Fatality rates
+### Deaths per capita
+
+```{r fig.height = 3, fig.width = 10}
+df %>%
+  filter(case_type == "deaths") %>%
+  left_join(populations, by = "country_code") %>%
+  filter(pop > 10^6, cases > 0) %>%
+  mutate(per_capita = 100000 * (cases/pop)) %>%
+  ggplot(aes(x = date, y = per_capita, group = country_code, colour = continent)) +
+  geom_line(alpha = 0.4) +
+  facet_grid(. ~ continent) +
+  theme_minimal() +
+  theme(
+    aspect.ratio = 1,
+    legend.position = "none",
+    axis.text.x = element_text(angle = 90, hjust = 0, vjust = 0.5)
+  ) +
+  scale_x_date(
+    date_labels = "%d %b",
+    date_breaks = "21 day",
+    expand = c(0, 0),
+    limits = c(min(df_wide_all$date), NA)
+  ) +
+  labs(
+    title = "Deaths per capita",
+    y = "Deaths per capita",
+    x = ""
+  ) +
+  scale_colour_discrete_qualitative()
+```
+
+## Mortality rates
 
 What is the fatality rate of COVID-19? Let's look at the number of deaths divided by the number of confirmed cases. This comes with many caveats. Most notably that the analysis is probably incorrect. See the following link for a discussion of how best to calculate fatality rates :https://www.worldometers.info/coronavirus/coronavirus-death-rate/#correct
 
@@ -826,7 +899,7 @@ mortality_rates <-
     names_from = case_type,
     values_from = cases
   ) %>%
-  filter(confirmed > 500) %>%
+  filter(confirmed > 2000) %>%
   mutate(mortality_rate = 100 * deaths / (confirmed)) %>%
   ungroup()
 
@@ -844,7 +917,7 @@ summary_latest_mortality_rate <-
   )
 
 # Which countries to highlight (arbitrary)
-highlight_countries <- c("Italy", "Iran", "United Kingdom", "China", "US", "Spain", "Netherlands")
+highlight_countries <- c("Italy", "Iran", "United Kingdom", "China", "US", "Spain", "Netherlands", "Sweden", "Germany")
 
 # Labels for highlighted countries
 labs <-
@@ -864,6 +937,7 @@ ggplot() +
     data = mortality_rates, 
     aes(x = date, y = mortality_rate, group = country), 
     colour = "#CCCCCC"
+    #alpha = 0.2
     ) +
   geom_hline(
     yintercept = summary_latest_mortality_rate$median_mort, 
@@ -884,7 +958,7 @@ ggplot() +
     stroke = 1.5
   ) +
   geom_label(
-    aes(x = as.Date("2020-01-25"), y = (summary_latest_mortality_rate$median_mort - 0.39)), 
+    aes(x = as.Date("2020-01-30"), y = (summary_latest_mortality_rate$median_mort + 0.39)), 
     label = "Median", 
     label.size = NA, 
     fill = "#FFFFFF", 
@@ -893,7 +967,7 @@ ggplot() +
   theme_minimal() +
   labs(
     title = "Fatality rate of COVID-19",
-    subtitle = "Fatality rate (deaths / confirmed cases) on a daily basis for each country with 500+ confirmed cases",
+    subtitle = "Fatality rate (deaths / confirmed cases) on a daily basis for each country with 2000+ confirmed cases",
     x = "",
     y = "Mortality rate (%)",
     caption = custom_caption
@@ -907,7 +981,7 @@ ggplot() +
     limits = c(0, NA),
     breaks = 0:50,
     expand = c(0.01, 0.25),
-    sec.axis = sec_axis(~., breaks = labs %>% pull(mortality_rate), labels = labs %>% pull(label))
+    sec.axis = sec_axis(~., breaks = labs %>% pull(mortality_rate) + 0.1, labels = labs %>% pull(label))
   ) +
   coord_cartesian(
     clip = "off"
@@ -920,7 +994,8 @@ ggplot() +
   scale_color_discrete_qualitative(palette = "Dark 3")
 ```
 
-## Within the United States
+
+## Cases within the United States
 
 ```{r state-import}
 # Import daily _state_ level
@@ -982,31 +1057,24 @@ states_map_complete %>%
   geom_sf(aes(geometry = geom, fill = per_capita), colour = "#FFFFFF") +
   scale_fill_continuous_sequential(
     trans = "log10",
-    palette = "Greens"
+    palette = "Inferno",
+    name = "Cases per capita"
   ) +
-  geom_sf_text(data = states_map_complete %>% filter(state %in% c("New York", "Illinois", "Washington")),
+  geom_sf_text(data = states_map_complete %>% filter(state %in% c("New York")),
                stat = StatSfCoordinates, 
                fun.geometry = sf::st_centroid, 
                aes(geometry = geom, label = state_abb.x), 
                colour = "#FFFFFF",
                size = 3) +
-  coord_sf(#crs = 4326, 
-           expand = T
-           ) +
-  theme_void() + 
+  coord_sf(expand = T) +
+  ggthemes::theme_map() + 
   labs(
     title = "Confirmed cases per capita"
-  ) 
-  # geom_label(aes(geometry = geom, label = state_abb.x),
-  #            stat = StatSfCoordinates,
-  #            fun.geometry = sf::st_centroid,
-  #            colour = "black", 
-  #            size = 2, 
-  #            check_overlap = TRUE)
-
+  ) +
+  theme(
+    legend.position = "bottom"
+  )
 ```
-
-
 
 ### County level statistics
 
@@ -1030,81 +1098,75 @@ county_cases <-
     state = state.name[grep(state_abb, state.abb)[1]]
   ) 
   
-# Get populations for all counties
-county_pops <-
-  state.name %>%
-  str_to_lower() %>%
-  str_remove_all(" ") %>%
-  map_dfr(
-    ~ glue("https://www.{ .x }-demographics.com/counties_by_population") %>%
-      read_html() %>%
-      html_node(xpath = glue('/html/body/div[3]/div[1]/div/table')) %>%
-      html_table() %>%
-      mutate(state = glue("{ .x }"))
-  ) %>%
-  janitor::clean_names() %>%
-  filter(!is.na(population)) %>%
-  mutate(
-    population = gsub(",(?)", "", population) %>% as.numeric,
-    rank = as.numeric(rank)
-         ) %>%
-  filter(!is.na(rank)) %>%
+## Get populations for all counties
+
+# Check if we've already scraped the data as to not hammer their servers.
+if (file.exists("./data/all_county_pops.csv")) {
+  county_pops <- read_csv("./data/all_county_pops.csv")
+} else {
+  county_pops <-
+    state.name %>%
+    str_to_lower() %>%
+    str_remove_all(" ") %>%
+    map_dfr(
+      ~ glue("https://www.{ .x }-demographics.com/counties_by_population") %>%
+        read_html() %>%
+        html_node(xpath = glue("/html/body/div[3]/div[1]/div/table")) %>%
+        html_table() %>%
+        mutate(state = glue("{ .x }"))
+    ) %>%
+    janitor::clean_names() %>%
+    filter(!is.na(population)) %>%
     mutate(
-     state = case_when(
-       state == "newhampshire" ~ "New Hampshire",
-       state == "newjersey" ~ "New Jersey",
-       state == "newmexico" ~ "New Mexico",
-       state == "newyork" ~ "New York",
-       state == "northcarolina" ~ "North Carolina",
-       state == "northdakot" ~ "North Dakota",
-       state == "newjersey" ~ "New Jersey",
-       state == "westvirginia" ~ "West Virginia",
-       state == "northdakota" ~ "North Dakota",
-       state == "southdakota" ~ "South Dakota",
-       state == "southcarolina" ~ "South Carolina",
-       state == "rhodeisland" ~ "Rhode Island",
-       TRUE ~ as.character(state)
-     ),
-     state = str_to_title(state)
-  )
+      population = gsub(",(?)", "", population) %>% as.numeric(),
+      rank = as.numeric(rank)
+    ) %>%
+    filter(!is.na(rank)) %>%
+    mutate(
+      #TODO: come up with more elegant solution, rowwise agrep?
+      state = case_when(
+        state == "newhampshire" ~ "New Hampshire",
+        state == "newjersey" ~ "New Jersey",
+        state == "newmexico" ~ "New Mexico",
+        state == "newyork" ~ "New York",
+        state == "northcarolina" ~ "North Carolina",
+        state == "northdakot" ~ "North Dakota",
+        state == "newjersey" ~ "New Jersey",
+        state == "westvirginia" ~ "West Virginia",
+        state == "northdakota" ~ "North Dakota",
+        state == "southdakota" ~ "South Dakota",
+        state == "southcarolina" ~ "South Carolina",
+        state == "rhodeisland" ~ "Rhode Island",
+        TRUE ~ as.character(state)
+      ),
+      state = str_to_title(state)
+    )
+  # Write to file
+  write_csv(county_pops, here("./data/all_county_pops.csv"))
+}
 
-write_csv(county_pops, here("./data/all_county_pops.csv"))
-county_pops <- read_csv("./data/all_county_pops.csv")
 
-# Country map
-country_map <- tigris::states() %>% 
-  sf::st_as_sf() %>%
-  filter(NAME %in% state.name,
-         NAME != "Alaska",
-         NAME != "Hawaii")
 
 # Get map of all counties
-county_maps <- tigris::counties() %>% sf::st_as_sf()
-
-state_maps <- tigris::states() %>% 
-  sf::st_as_sf() %>%
-  filter(NAME %in% state.name,
-         NAME != "Alaska",
-         NAME != "Hawaii")
+county_maps <- read_sf(here('./data/sf_files/'))
 
 # Combine it all together
 complete_df <-
-  # Take our county map and combine it with
+  # Take our county map and combine it with cases data
   county_maps %>%
   left_join(
+    # Before joining above, combine case data with county populations
     county_cases %>%
-#      group_by(state_fips, county_fips) %>%
-#      filter(date == max(date)) %>%
-#      ungroup() %>%
       left_join(county_pops, by = c("county", "state")) %>%
       filter(county != "Statewide Unallocated") %>%
+      # Mutate this nested left-joined database so we have STATEFP/COUNTYFP
       mutate(
         COUNTYFP = as.character(county_fips) %>% str_sub(., -3),
         STATEFP = as.character(county_fips) %>% str_remove(string = ., pattern = ".{3}$") %>% str_pad(width = 2, side = "left", pad = "0"),
         per_capita = (confirmed_cases / population) * 100000
       ) %>%
       select(county_fips, state_fips, STATEFP, COUNTYFP, county, everything()),
-    # Left join by
+    # Left join by the STATEFP/COUNTYFP we just worked out
     by = c("STATEFP", "COUNTYFP")
   ) %>%
   filter(
@@ -1120,90 +1182,110 @@ complete_df <-
 
 
 
+
 ```{r march, eval = FALSE, echo = TRUE}
-date_seq <- seq(as.Date("2020-03-01"), as.Date("2020-03-31"), by = 1)
 
-lims <- c(min(complete_df$per_capita[(complete_df$per_capita > 0 & (complete_df$date >= "2020-03-01" & complete_df$date <= "2020-03-31"))], na.rm = T), max(complete_df$per_capita[complete_df$date >= "2020-03-01" & complete_df$date <= "2020-03-31"], na.rm = T))
+map_seq_plot <- function(df, min_date, max_date, n_col, ext) {
+  # Range of dates to plot
+  date_seq <- seq(as.Date(min_date), as.Date(max_date), by = 1)
 
-plot_list <- list()
-
-for (i in 1:31) {
+  # Compute lims for colour scale. Limit to values within date range.
+  # Only select values > 0 to avoid error when log-scaling
+  lims <- c(
+    min(df$per_capita[(df$per_capita > 0 & (df$date >= min_date & df$date <= max_date))], na.rm = T),
+    max(df$per_capita[df$date >= min_date & df$date <= max_date], na.rm = T)
+  )
   
-  plot_label = complete_df$label[which.max(complete_df$date == date_seq[i])]
-  
-  filtered_df <-  
-    complete_df %>%
-    filter(date == date_seq[i]) %>%
-    filter(per_capita > 0)
-  
-plot_list[[i]] <-
-  ggplot() +
-  geom_sf(data = country_map, aes(geometry = geometry), fill = NA, colour = NA) +
-  geom_sf(data = filtered_df, aes(fill = per_capita, geometry = geometry), colour = NA) +
-  coord_sf(
-    crs = 4326,
-    expand = F,
-    clip = "off"
-  ) +
-  ggthemes::theme_map() +
-  scale_fill_continuous_sequential(
-    palette = "Inferno",
-    name = "Cases per capita",
-    limits = lims,
-    trans = "log10",
-    na.value = NA,
-    breaks = c(0.1, 10, 1000),
-    labels = c(0.1, 10, 1000),
-    guide = guide_colorbar(
-      frame.colour = "black",
-      frame.linewidth = 1,
-      frame.linetype = 1,
-      draw.llim = FALSE,
-      draw.ulim = FALSE
-    )
-  ) +
-  theme(
-    legend.position = "bottom"
-  )  +
-    annotate(
-      geom = "text",
-      x = -124.849,
-      y = 49.00243 + 3,
-      label = plot_label,
-      vjust = 0.5,
-      hjust = 0, 
-      size = 2.75,
-      family = "sans"
-    )
-}
+  # Country map. This helps ensure proper alignment from plot to plot. Bit hacky.
+  country_map <- tigris::states() %>% 
+    sf::st_as_sf() %>%
+    filter(NAME %in% state.name,
+           NAME != "Alaska",
+           NAME != "Hawaii")
 
-plot_wrapped <-
-  wrap_plots(plot_list, ncol = 7, nrow = 5, guides = "collect") +
+  # Initialise plot list
+  plot_list <- list()
+
+  for (i in 1:length(date_seq)) {
+    plot_label <- df$label[which.max(df$date == date_seq[i])]
+
+    filtered_df <-
+      df %>%
+      filter(date == date_seq[i]) %>%
+      filter(per_capita > 0)
+
+    plot_list[[i]] <-
+      ggplot() +
+      geom_sf(data = country_map, aes(geometry = geometry), fill = NA, colour = NA) + 
+      geom_sf(data = filtered_df, aes(fill = per_capita, geometry = geometry), colour = NA) +
+      coord_sf(
+        crs = 4326,
+        expand = F,
+        clip = "off"
+      ) +
+      ggthemes::theme_map() +
+      scale_fill_continuous_sequential(
+        palette = "Inferno",
+        name = "Cases per capita",
+        limits = lims,
+        trans = "log10",
+        na.value = NA,
+        breaks = c(0.1, 10, 1000),
+        labels = c(0.1, 10, 1000),
+        guide = guide_colorbar(
+          frame.colour = "black",
+          frame.linewidth = 1,
+          frame.linetype = 1,
+          draw.llim = FALSE,
+          draw.ulim = FALSE
+        )
+      ) +
+      theme(
+        legend.position = "bottom"
+      ) +
+      annotate(
+        geom = "text",
+        x = -124.849,
+        y = 49.00243 + 3,
+        label = plot_label,
+        vjust = 0.5,
+        hjust = 0,
+        size = 2.75,
+        family = "sans"
+      )
+  }
+  
+  # Wrap plots
+  plot_wrapped <-
+  wrap_plots(plot_list, ncol = n_col, guides = "collect") +
   plot_annotation(title = "A month of coronavirus", 
                   subtitle = "Timeline of coronavirus cases at the county level", 
-                  caption = glue("Last updated 2020-04-01\nCounty-level covid-19 data: https://usafacts.org/")) & 
+                  caption = custom_caption) & 
   theme(legend.position = "bottom", 
         legend.justification = "right",
         plot.caption = element_text(colour = "grey30"),
         plot.title = element_text(size = ceiling(12 * 1.1), face = "bold"),
         plot.subtitle = element_text(size = ceiling(12 * 1.05))
         )
-
-
-ggsave(filename = "./output/2020-03.png", plot = plot_wrapped, height = 6.5, width = 10, unit = "in")
+  
+  # Save plots
+  ggsave(filename = glue("./output/{ min_date }-{ max_date }.{ ext }"), plot = plot_wrapped, height = 6.5, width = 10, unit = "in")
+}
 ```
 
 
 ```{r}
-knitr::include_graphics("./output/2020-03.png")
+min_date <- "2020-03-01"
+max_date <- "2020-03-31"
+
+
+map_seq_plot(df = complete_df, min_date = min_date, max_date =max_date, n_col = 7, ext = "png")
+
+knitr::include_graphics(glue("./output/{ min_date }-{ max_date }.png"))
 ```
+
 ```{r}
-max(complete_df$date)
-```
-
-
-```{r apr, eval = FALSE, echo = TRUE}
-date_seq <- seq(as.Date("2020-04-01"), max(complete_df$date), 1)
+date_seq <- seq(as.Date("2020-04-01"), as.Date(max(complete_df$date)), by = 1)
 
 lims <- c(min(complete_df$per_capita[(complete_df$per_capita > 0 & (complete_df$date >= "2020-04-01" & complete_df$date <= "2020-04-30"))], na.rm = T), max(complete_df$per_capita[complete_df$date >= "2020-04-01" & complete_df$date <= "2020-04-30"], na.rm = T))
 
@@ -1273,95 +1355,22 @@ plot_wrapped <-
         )
 
 
-ggsave(filename = "./output/march-april-comparison.png", plot = plot_wrapped, height = 5, width = 10, unit = "in", dpi = 320)
+ggsave(filename = glue("./output/{min(date_seq)}-{max(date_seq)}.{ ext }"), plot = plot_wrapped, height = 5, width = 10, unit = "in", dpi = 320)
 ```
+
 
 
 ```{r}
-knitr::include_graphics("./output/march-april-comparison.png")
+knitr::include_graphics(glue("./output/{min(date_seq)}-{max(date_seq)}.png"))
 ```
 
-```{r}
-date_seq <- seq(as.Date("2020-04-01"), as.Date(max(complete_df$date)), by = 1)
-
-lims <- c(min(complete_df$per_capita[(complete_df$per_capita > 0 & (complete_df$date >= "2020-01-01" & complete_df$date <= "2020-04-30"))], na.rm = T), max(complete_df$per_capita[complete_df$date >= "2020-01-01" & complete_df$date <= "2020-04-30"], na.rm = T))
-
-
-plot_list <- list()
-
-for (i in 1:length(date_seq)) {
-  
-  plot_label = complete_df$label[which.max(complete_df$date == date_seq[i])]
-  
-  filtered_df <-  
-    complete_df %>%
-    filter(date == date_seq[i]) %>%
-    filter(per_capita > 0)
-  
-plot_list[[i]] <-
-  ggplot() +
-  geom_sf(data = country_map, aes(geometry = geometry), fill = NA, colour = NA) +
-  geom_sf(data = filtered_df, aes(fill = per_capita, geometry = geometry), colour = NA) +
-  coord_sf(
-    crs = 4326,
-    expand = F,
-    clip = "off"
-  ) +
-  ggthemes::theme_map() +
-  scale_fill_continuous_sequential(
-    palette = "Inferno",
-    name = "Cases per capita",
-    limits = lims,
-    trans = "log10",
-    na.value = NA,
-    breaks = c(0.1, 10, 1000),
-    labels = c(0.1, 10, 1000),
-    guide = guide_colorbar(
-      frame.colour = "black",
-      frame.linewidth = 1,
-      frame.linetype = 1,
-      draw.llim = FALSE,
-      draw.ulim = FALSE
-    )
-  ) +
-  theme(
-    legend.position = "bottom"
-  )  +
-    annotate(
-      geom = "text",
-      x = -124.849,
-      y = 49.00243 + 3,
-      label = plot_label,
-      vjust = 0.5,
-      hjust = 0, 
-      size = 2.75,
-      family = "sans"
-    )
-}
-
-plot_wrapped <-
-  wrap_plots(plot_list, guides = "collect") +
-  plot_annotation(title = "A month of coronavirus", 
-                  subtitle = "Coronavirus cases at the county level", 
-                  caption = glue("Last updated 2020-04-03\nCounty-level covid-19 data: https://usafacts.org/")) & 
-  theme(legend.position = "bottom", 
-        legend.justification = "right",
-        plot.caption = element_text(colour = "grey30"),
-        plot.title = element_text(size = ceiling(12 * 1.1), face = "bold"),
-        plot.subtitle = element_text(size = ceiling(12 * 1.05), colour = "grey30")
-        )
-
-
-ggsave(filename = glue("./output/{min(date_seq)}-{max(date_seq)}.png"), plot = plot_wrapped, height = 5, width = 10, unit = "in", dpi = 320)
-```
-
-
-#### Chicago
+#### Illinois
 
 ```{r fig.height = 7, fig.width = 10}
 complete_df %>%
   filter(state_abb %in% c("IL")) %>%
-  filter(date >= max(date) - days(60)) %>%
+  filter(date >= max(date) - days(30)) %>%
+ # mutate(label = format(date, "%d %b")) %>%
   ggplot(aes(fill = per_capita)) +
   geom_sf(aes(geometry = geometry)) +
   coord_sf(crs = 4326, 
@@ -1384,43 +1393,96 @@ complete_df %>%
   ggthemes::theme_map() +
   theme(
     legend.position = "bottom",
-    strip.background = element_blank()
+    strip.background = element_blank(),
+    panel.spacing = unit(0.5, "lines"),
   ) +
-  facet_wrap(date ~ ., nrow = 6) 
+  facet_wrap(date ~ ., ncol = 7) 
 ```
 
-
-#### NY
-
-```{r fig.height = 7, fig.width = 10}
-#, "NJ", "PA"
+```{r fig.height = 7, fig.width = 5}
 complete_df %>%
-  filter(state_abb %in% c("NY")) %>%
-  filter(date > max(date) - days(60)) %>%
-  ggplot(aes(fill = per_capita)) +
-  geom_sf(aes(geometry = geometry)) +
+  filter(state_abb %in% c("IL", "WI", "MI", "IN")) %>%
+  filter(date == max(date)) %>%
+  ggplot() +
+  geom_sf(aes(geometry = geometry, fill = per_capita), colour = "grey90") +
+  geom_sf(data = . %>% group_by(state_abb) %>% summarise(), colour = "grey15", fill = NA) +
   coord_sf(crs = 4326, 
            expand = TRUE) +
   scale_fill_continuous_sequential(
     palette = "Inferno",
     name = "Cases per capita",
     trans = "log10",
-    na.value = "white",
+    na.value = "grey90",
     labels = scales::label_number(accuracy = 0.1),
-      guide = guide_colorbar(
-      barwidth = unit(5, "cm"),
-      frame.colour = "black",
-      frame.linewidth = 1,
-      frame.linetype = 1,
-      draw.llim = FALSE,
-      draw.ulim = FALSE
+    guide = guide_colorbar(
+     barwidth = unit(5, "cm"),
+     frame.colour = "black",
+     frame.linewidth = 1,
+     frame.linetype = 1,
+     draw.llim = FALSE,
+     draw.ulim = FALSE
     )
   ) +
   ggthemes::theme_map() +
   theme(
     legend.position = "bottom",
-    strip.background = element_blank()
-  ) +
-  facet_wrap(date ~ ., nrow = 6)
+    strip.background = element_blank(),
+    panel.spacing = unit(0.5, "lines"),
+  ) 
 ```
+
+
+
+```{r}
+# Get all counties for state 55 (WI)
+il_counties <- complete_df %>% as.data.frame() %>% filter(state == "Illinois") %>% distinct(COUNTYFP) %>% pull()
+
+il_water <- 
+  map_dfr(
+    il_counties[-40],
+    ~ area_water("IL", county = ., class = "sf") %>% filter(AWATER < 10^8)
+  ) %>%
+  summarise() %>%
+  sf::st_as_sf()
+
+  ggplot() +
+    geom_sf(data = complete_df %>% filter(state == "Illinois"), aes(fill = per_capita)) +
+    geom_sf(data = il_water, fill = "blue", colour = alpha("blue", 0.2)) +
+  coord_sf(crs = 4326, 
+           expand = TRUE) +
+  scale_fill_continuous_sequential(
+    palette = "Greens",
+    name = "Cases per capita",
+    trans = "log10",
+    na.value = "grey90",
+    labels = scales::label_number(accuracy = 0.1),
+    guide = guide_colorbar(
+     barwidth = unit(5, "cm"),
+     frame.colour = "black",
+     frame.linewidth = 1,
+     frame.linetype = 1,
+     draw.llim = FALSE,
+     draw.ulim = FALSE
+    )
+  ) +
+  ggthemes::theme_map() +
+  theme(
+    legend.position = "bottom",
+    strip.background = element_blank(),
+    panel.spacing = unit(0.5, "lines"),
+  ) 
+```
+
+
+
+
+```{r}
+library(tidyverse)
+
+tigris::area_water("IL", "Cook") %>% 
+  sf::st_as_sf() %>%
+  ggplot() +
+  geom_sf(alpha = 1, colour = alpha("blue", 0.2))
+```
+
 
