@@ -1,5 +1,7 @@
 .Rproj.user
+.Rproj
 .Rhistory
 .RData
 .Ruserdata
 leftovers.Rmd
+covid_map.R

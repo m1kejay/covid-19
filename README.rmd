@@ -1,13 +1,31 @@
-Cursory analysis of COVID-19 data
-================
-Mike Jay
-2020-04-14
+---
+title: "Cursory analysis of COVID-19 data"
+author: "Mike Jay"
+date: "Last edited `r Sys.Date()`"
+output:
+  github_document:
+    toc: TRUE
+    toc_depth: 2
+---
+
+
+```{r init, include = FALSE}
+
+knitr::opts_chunk$set(
+  fig.retina = 2,
+  message = FALSE,
+  warning = FALSE,
+  fig.path = "README_figs/README-"
+)
+```
+
+Inevitable covid-19 project.
 
 # Importing and cleaning data
 
-Let’s begin by loading packages necessary for the analysis here:
+Let's begin by loading packages necessary for the analysis here:
 
-``` r
+```{r library-import, message=FALSE, warning=FALSE}
 # Libraries used in this analysis
 
 library(sf) # Mapping
@@ -31,14 +49,12 @@ library(grid) # To help reconstruct ggplots
 library(wbstats) # Useful for getting GDP stats
 ```
 
+
 ## Country-level plots
 
-Before we can do any plotting, we of course have to import the data and
-do a little bit of tidying. Country-level covid-19 data comes from John
-Hopkins’ github repository which is located here:
-<https://github.com/CSSEGISandData/COVID-19/>.
+Before we can do any plotting, we of course have to import the data and do a little bit of tidying. Country-level covid-19 data comes from John Hopkins' github repository which is located here: https://github.com/CSSEGISandData/COVID-19/.
 
-``` r
+```{r data-import}
 # location of data
 data_url_prefix <- "https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_"
 
@@ -93,48 +109,25 @@ write_csv(df, file_name)
 # Redefining na  so NA gets encoded as the country_code for Namibia
 df <- read_csv(file_name, na = "NaN")
 df
-```
 
-    ## # A tibble: 30,744 x 7
-    ##    case_type country     date       cases n_days continent country_code
-    ##    <chr>     <chr>       <date>     <dbl>  <dbl> <chr>     <chr>       
-    ##  1 confirmed Afghanistan 2020-01-22     0    -83 Asia      AF          
-    ##  2 confirmed Afghanistan 2020-01-23     0    -82 Asia      AF          
-    ##  3 confirmed Afghanistan 2020-01-24     0    -81 Asia      AF          
-    ##  4 confirmed Afghanistan 2020-01-25     0    -80 Asia      AF          
-    ##  5 confirmed Afghanistan 2020-01-26     0    -79 Asia      AF          
-    ##  6 confirmed Afghanistan 2020-01-27     0    -78 Asia      AF          
-    ##  7 confirmed Afghanistan 2020-01-28     0    -77 Asia      AF          
-    ##  8 confirmed Afghanistan 2020-01-29     0    -76 Asia      AF          
-    ##  9 confirmed Afghanistan 2020-01-30     0    -75 Asia      AF          
-    ## 10 confirmed Afghanistan 2020-01-31     0    -74 Asia      AF          
-    ## # ... with 30,734 more rows
-
-``` r
 # Define caption which  I'll put on most graphs
 custom_caption <- glue("Last updated {Sys.Date()}\nData: https://github.com/CSSEGISandData/COVID-19/")
 ```
 
-This code block takes the raw data from github and does a few key
-things:
+This code block takes the raw data from github and does a few key things:
 
-  - By using `map_dfr()`, it takes the two files,
-    `time_series_covid19_confirmed_global.csv` and
-    `time_series_covid19_deaths_global.csv`, and binds the data together
-    into one dataframe.
-  - Converts the new dataframe from wide to long format.
-  - Removes the ‘Diamond Princess’ (cruise ship) data.
-  - Aggregates across each country/day the number of cases.
-  - Finally it introduces two new variables: `continent` and
-    `country_code` (using the `countrycode` package) which will be
-    useful for plotting purposes and pulling in statistics from
-    `worldbank`.
+* By using `map_dfr()`, it takes the two files, `time_series_covid19_confirmed_global.csv` and `time_series_covid19_deaths_global.csv`, and binds the data together into one dataframe.
+* Converts the new dataframe from wide to long format.
+* Removes the 'Diamond Princess' (cruise ship) data. 
+* Aggregates across each country/day the number of cases. 
+* Finally it introduces two new variables: `continent` and `country_code` (using the `countrycode` package) which will be useful for plotting purposes and pulling in statistics from `worldbank`.
 
-Now we can move onto plotting the data…
+Now we can move onto plotting the data...
 
 ### Confirmed cases
 
-``` r
+```{r days-vs-confirmed-cases, fig.height = 6, fig.width = 7}
+
 days_vs_confirmed <-
   df %>%
   filter(case_type == "confirmed") %>%
@@ -186,15 +179,11 @@ days_vs_confirmed %>%
   )
 ```
 
-<img src="covid_files/figure-gfm/days-vs-confirmed-cases-1.png" width="672" />
+So we can see some correlation between the number of days since the first case for a given country and the total number of cases. 
 
-So we can see some correlation between the number of days since the
-first case for a given country and the total number of cases.
+Next let's make a lollipop chart so we can better appreciate cases on a country-by-country basis:
 
-Next let’s make a lollipop chart so we can better appreciate cases on a
-country-by-country basis:
-
-``` r
+```{r confirmed-cases-lollipop, fig.height = 11.5, fig.width = 8}
 # Minor breaks for log-scale axis grid
 minor_breaks <- rep(1:10, 31) * (10^rep(0:30, each = 30))
 
@@ -269,11 +258,10 @@ df %>%
   facet_grid(continent ~ ., space = "free", scales = "free_y")
 ```
 
-<img src="covid_files/figure-gfm/confirmed-cases-lollipop-1.png" width="768" />
 
-Let’s get a bird’s eye view for all countries in the dataset:
+Let's get a bird's eye view for all countries in the dataset:
 
-``` r
+```{r country-by-country, fig.height = 11, fig.width = 10.5}
 # Mutate n_days so it makes more sense (to me)
 correct_days <-
   df %>%
@@ -446,11 +434,9 @@ p_filtered_plot <- ggpubr::as_ggplot(p_filtered)
 p_filtered_plot
 ```
 
-<img src="covid_files/figure-gfm/country-by-country-1.png" width="1008" />
-
 Has there been any slow down in the number of new cases?
 
-``` r
+```{r daily-count-novel-cases}
 # Find sum of daily counts across all countries
 daily_cases_all <-
 df %>%
@@ -490,11 +476,9 @@ daily_cases_all %>%
   )
 ```
 
-<img src="covid_files/figure-gfm/daily-count-novel-cases-1.png" width="672" />
-
 How does each continent contribute to the increase in novel cases?
 
-``` r
+```{r daily-count-novel-cases-continent, fig.height = 4, fig.width = 12}
 daily_cases_select <- df %>%
   select(case_type, country, date, cases, continent) %>%
   pivot_wider(
@@ -537,11 +521,9 @@ ggplot() +
   )
 ```
 
-<img src="covid_files/figure-gfm/daily-count-novel-cases-continent-1.png" width="1152" />
-
 and as a percent of cases:
 
-``` r
+```{r share-of-new-cases-continent, fig.width = 8, fig.height = 4}
 # Arbitrary order of the fill
 order <- rev(c("Oceania", "Africa", "Americas", "Europe", "Asia"))
 
@@ -571,11 +553,9 @@ daily_cases_select %>%
   )
 ```
 
-<img src="covid_files/figure-gfm/share-of-new-cases-continent-1.png" width="768" />
-
 and what about some select countries?
 
-``` r
+```{r cases-per-select-countries, fig.width = 10, fig.height = 4}
 daily_cases_select <- df %>%
   select(case_type, country, date, cases, continent) %>%
   pivot_wider(
@@ -636,16 +616,13 @@ ggplot() +
   )
 ```
 
-<img src="covid_files/figure-gfm/cases-per-select-countries-1.png" width="960" />
-
-(I added that annotation for China back when a blip of 15,000 daily
-cases was note-worthy)
+(I added that annotation for China back when a blip of 15,000 daily cases was note-worthy)
 
 #### Confirmed cases per capita
 
-Let’s take a look at cases per capita (i.e. cases per 100,000 people):
+Let's take a look at cases per capita (i.e. cases per 100,000 people):
 
-``` r
+```{r cases-per-capita}
 populations <- wb_data("SP.POP.TOTL", start_date = 2017) %>%
   select(iso2c, SP.POP.TOTL) %>%
   rename(
@@ -684,16 +661,11 @@ cases_per_capita %>%
   )
 ```
 
-<img src="covid_files/figure-gfm/cases-per-capita-1.png" width="672" />
+#### GDP vs. cases per capita
 
-#### GDP vs. cases per capita
+We can see from above Africa has very few confirmed cases of covid-19. Could it be that perhaps poorer countries lack the infrastructure or resources to test for covid-19? Let's see what GDP vs confirmed cases looks like:
 
-We can see from above Africa has very few confirmed cases of covid-19.
-Could it be that perhaps poorer countries lack the infrastructure or
-resources to test for covid-19? Let’s see what GDP vs confirmed cases
-looks like:
-
-``` r
+```{r gdp-vs-confirmed-cases}
 gdp <- wb_data("NY.GDP.PCAP.CD", start_date = 2017) %>%
   select(iso2c, NY.GDP.PCAP.CD) %>%
   rename(
@@ -732,9 +704,7 @@ df %>%
   )
 ```
 
-<img src="covid_files/figure-gfm/gdp-vs-confirmed-cases-1.png" width="672" />
-
-``` r
+```{r gdp-vs-confirmed-cases-continent, fig.height = 3, fig.width = 10}
 df %>%
   left_join(gdp, by = "country_code") %>%
   filter(case_type == "confirmed") %>%
@@ -771,13 +741,11 @@ df %>%
   facet_wrap(. ~ continent, nrow = 1, scales = "free_y")
 ```
 
-<img src="covid_files/figure-gfm/gdp-vs-confirmed-cases-continent-1.png" width="960" />
-
 ## Covid-19 associated deaths
 
-What’s the death toll looking like?
+What's the death toll looking like?
 
-``` r
+```{r cum-deaths}
 # Convert to wide format
 df_wide_all <-
   df %>%
@@ -850,11 +818,9 @@ ggplot() +
   )
 ```
 
-<img src="covid_files/figure-gfm/cum-deaths-1.png" width="672" />
-
 ### Deaths per capita
 
-``` r
+```{r death-per-capita-continent, fig.height = 3, fig.width = 10}
 df %>%
   filter(case_type == "deaths") %>%
   left_join(populations, by = "country_code") %>%
@@ -887,17 +853,11 @@ df %>%
   )
 ```
 
-<img src="covid_files/figure-gfm/death-per-capita-continent-1.png" width="960" />
-
 ## Mortality rates
 
-What is the fatality rate of COVID-19? Let’s look at the number of
-deaths divided by the number of confirmed cases. This comes with many
-caveats. Most notably that the analysis is probably incorrect. See the
-following link for a discussion on how best to calculate fatality rates:
-<https://www.worldometers.info/coronavirus/coronavirus-death-rate/#correct>
+What is the fatality rate of COVID-19? Let's look at the number of deaths divided by the number of confirmed cases. This comes with many caveats. Most notably that the analysis is probably incorrect. See the following link for a discussion on how best to calculate fatality rates: https://www.worldometers.info/coronavirus/coronavirus-death-rate/#correct
 
-``` r
+```{r fatality-rate-over-time, fig.height = 6, fig.width = 9}
 # Find rates for each row
 mortality_rates <-
   df %>%
@@ -1000,11 +960,10 @@ ggplot() +
   scale_color_discrete_qualitative(palette = "Dark 3")
 ```
 
-<img src="covid_files/figure-gfm/fatality-rate-over-time-1.png" width="864" />
 
 ## Cases within the United States
 
-``` r
+```{r state-import}
 # Import daily _state_ level
 daily_state_cases  <-
   read_csv("http://covidtracking.com/api/states/daily.csv") %>%
@@ -1083,17 +1042,13 @@ states_map_complete %>%
   )
 ```
 
-<img src="covid_files/figure-gfm/state-import-1.png" width="672" />
-
 ### County-level statistics
 
-Let’s look at cases for each county in the US to get a slightly more
-nuanced view.
+Let's look at cases for each county in the US to get a slightly more nuanced view.
 
-First, let’s read in the covid-19 cases
-data:
+First, let's read in the covid-19 cases data:
 
-``` r
+```{r}
 # https://usafactsstatic.blob.core.windows.net/public/data/covid-19/covid_deaths_usafacts.csv
 
 # Read and clean covid-19 cases on a county basis 
@@ -1114,16 +1069,9 @@ county_cases <-
   )
 ```
 
-Now we want to find the populations for each county within each state. I
-came across a website - or strictly many websites - which follow the
-same template where `x` in
-`www.x-demographics.com/counties_by_population` is the state name
-without spaces. I realised I can iterate over this website(s) for each
-state using `map_dfr()` and end up with a dataframe containing the
-county-level populations for all
-states.
+Now we want to find the populations for each county within each state. I came across a website - or strictly many websites - which follow the same template where `x` in `www.x-demographics.com/counties_by_population` is the state name without spaces. I realised I can iterate over this website(s) for each state using `map_dfr()` and end up with a dataframe containing the county-level populations for all states. 
 
-``` r
+```{r import-county-pop-info}
 # Check if we've already scraped the data as to not hammer their servers.
 if (!file.exists("./data/all_county_pops.csv")) {
   county_pops <-
@@ -1170,34 +1118,24 @@ if (!file.exists("./data/all_county_pops.csv")) {
 county_pops <- read_csv("./data/all_county_pops.csv")
 ```
 
-Now let’s import the county shape files:
+Now let's import the county shape files:
 
-``` r
+```{r import-county-map}
 # Get map of all counties
 county_maps <- read_sf(here('./data/sf_files/county'))
 ```
 
-This next block ties all our data together. It’s easier to read this
-chunk inside out.
+This next block ties all our data together. It's easier to read this chunk inside out.
 
-  - First we take our `county_cases` (covid-19 incidences) and join that
-    with `county_pops` (populations) using the `county` and `state`
-    variables to uniquely match rows.
-  - Once this is done, I add two new columns, `COUNTYFP` and `STATEFP`.
-    These are unique identifying numbers for each county and state.
-      - This information already exists in the `county_fips` column in
-        `county_cases` but I’ve reformatted them so it matches the
-        structure in `county_maps`.
-  - At this point we’ll also calculate per-capita rates of covid-19
-    cases.
-  - Now we have `county_cases` and `county_pops` combined, we next
-    combine all that information into `county_maps`.
-  - Finally, limit the data to mainland US and add a custom label which
-    will be useful later.
+* First we take our `county_cases` (covid-19 incidences) and join that with `county_pops` (populations) using the `county` and `state` variables to uniquely match rows.
+* Once this is done, I add two new columns, `COUNTYFP` and `STATEFP`. These are unique identifying numbers for each county and state.
+    - This information already exists in the `county_fips` column in `county_cases` but I've reformatted them so it matches the structure in `county_maps`.
+* At this point we'll also calculate per-capita rates of covid-19 cases.
+* Now we have `county_cases` and `county_pops` combined, we next combine all that information into `county_maps`.
+* Finally, limit the data to mainland US and add a custom label which will be useful later.
 
-<!-- end list -->
 
-``` r
+```{r combine-info-together}
 # Combine it all together
 complete_df <-
   # Take our county map and combine it with cases data
@@ -1228,50 +1166,17 @@ complete_df <-
   )
 ```
 
-Doing all of the above leaves us with a dataframe which looks like the
-following:
+Doing all of the above leaves us with a dataframe which looks like the following:
 
-``` r
+```{r dtr-complete-df}
 str(complete_df)
 ```
 
-    ## tibble [260,988 x 21] (S3: sf/tbl_df/tbl/data.frame)
-    ##  $ STATEFP        : chr [1:260988] "21" "21" "21" "21" ...
-    ##  $ COUNTYFP       : chr [1:260988] "007" "007" "007" "007" ...
-    ##  $ COUNTYNS       : chr [1:260988] "00516850" "00516850" "00516850" "00516850" ...
-    ##  $ AFFGEOID       : chr [1:260988] "0500000US21007" "0500000US21007" "0500000US21007" "0500000US21007" ...
-    ##  $ GEOID          : chr [1:260988] "21007" "21007" "21007" "21007" ...
-    ##  $ NAME           : chr [1:260988] "Ballard" "Ballard" "Ballard" "Ballard" ...
-    ##  $ LSAD           : chr [1:260988] "06" "06" "06" "06" ...
-    ##  $ ALAND          : num [1:260988] 6.39e+08 6.39e+08 6.39e+08 6.39e+08 6.39e+08 ...
-    ##  $ AWATER         : num [1:260988] 69473325 69473325 69473325 69473325 69473325 ...
-    ##  $ geometry       :sfc_MULTIPOLYGON of length 260988; first list element: List of 1
-    ##   ..$ :List of 1
-    ##   .. ..$ : num [1:294, 1:2] -89.2 -89.2 -89.2 -89.2 -89.2 ...
-    ##   ..- attr(*, "class")= chr [1:3] "XY" "MULTIPOLYGON" "sfg"
-    ##  $ county_fips    : num [1:260988] 21007 21007 21007 21007 21007 ...
-    ##  $ state_fips     : num [1:260988] 21 21 21 21 21 21 21 21 21 21 ...
-    ##  $ county         : chr [1:260988] "Ballard County" "Ballard County" "Ballard County" "Ballard County" ...
-    ##  $ state_abb      : chr [1:260988] "KY" "KY" "KY" "KY" ...
-    ##  $ date           : Date[1:260988], format: "2020-01-22" "2020-01-23" ...
-    ##  $ confirmed_cases: num [1:260988] 0 0 0 0 0 0 0 0 0 0 ...
-    ##  $ state          : chr [1:260988] "Kentucky" "Kentucky" "Kentucky" "Kentucky" ...
-    ##  $ rank           : num [1:260988] 109 109 109 109 109 109 109 109 109 109 ...
-    ##  $ population     : num [1:260988] 8090 8090 8090 8090 8090 8090 8090 8090 8090 8090 ...
-    ##  $ per_capita     : num [1:260988] 0 0 0 0 0 0 0 0 0 0 ...
-    ##  $ label          : 'glue' chr [1:260988] "22 Jan" "23 Jan" "24 Jan" "25 Jan" ...
-    ##  - attr(*, "sf_column")= chr "geometry"
-    ##  - attr(*, "agr")= Factor w/ 3 levels "constant","aggregate",..: NA NA NA NA NA NA NA NA NA NA ...
-    ##   ..- attr(*, "names")= chr [1:20] "STATEFP" "COUNTYFP" "COUNTYNS" "AFFGEOID" ...
+This dataframe now has the geometry for each county and crucially the number of cases (and per-capita information) for each day from `r min(complete_df$date)` to `r max(complete_df$date)`.
 
-This dataframe now has the geometry for each county and crucially the
-number of cases (and per-capita information) for each day from
-2020-01-22 to 2020-04-14.
+Now let's build some maps! 
 
-Now let’s build some
-maps\!
-
-``` r
+```{r map-seq-fn}
 map_seq_plot <- function(df, min_date, max_date, range, title, subtitle, caption, ext) {
   
   # TODO: Take any number of specific days (e.g. 01-01, 01-02, 01-03...)
@@ -1399,7 +1304,8 @@ map_seq_plot <- function(df, min_date, max_date, range, title, subtitle, caption
 }
 ```
 
-``` r
+
+```{r month-of-march}
 min_date <- "2020-03-01"
 max_date <- "2020-03-31"
 map_seq_plot(df = complete_df, 
@@ -1408,19 +1314,13 @@ map_seq_plot(df = complete_df,
              range = "yes", 
              title = "A month of coronavirus",
              subtitle =  "Covid-19 cases throughout March",
-             caption = custom_caption,
+             caption = glue("Last updated: { Sys.Date() }"),
              ext = "png")
-```
 
-    ## Output saved to: output/2020-03-01-2020-03-31.png
-
-``` r
 knitr::include_graphics(glue("./output/{ min_date }-{ max_date }.png"))
 ```
 
-<img src="./output/2020-03-01-2020-03-31.png" width="1500" />
-
-``` r
+```{r april-to-present}
 min_date <- as.Date("2020-04-01")
 max_date <- as.Date(max(complete_df$date))
 
@@ -1430,19 +1330,13 @@ map_seq_plot(df = complete_df,
              range = "yes", 
              title = "1st April to Present",
              subtitle =  "Covid-19 cases per capita from beinning of April to present",
-             caption = custom_caption,
+             caption = glue("Last updated: { Sys.Date() }"),
              ext = "png")
-```
 
-    ## Output saved to: output/2020-04-01-2020-04-14.png
-
-``` r
 knitr::include_graphics(glue("./output/{ min_date }-{ max_date }.png"))
 ```
 
-<img src="./output/2020-04-01-2020-04-14.png" width="1500" />
-
-``` r
+```{r present-day-only}
 # hacky way to get one day only
 min_date <- as.Date(max(complete_df$date))
 max_date <- as.Date(max(complete_df$date))
@@ -1453,27 +1347,18 @@ map_seq_plot(df = complete_df,
              range = "yes", 
              title = glue("Cases as of { max_date}."),
              subtitle =  "Covid-19 cases per capita for most recent day",
-             caption = glue("Last updated: { max_date }"),
+             caption = glue("Last updated: { Sys.Date() }"),
              ext = "png")
-```
 
-    ## Output saved to: output/2020-04-14-2020-04-14.png
-
-``` r
 knitr::include_graphics(glue("./output/{ min_date }-{ max_date }.png"))
 ```
 
-<img src="./output/2020-04-14-2020-04-14.png" width="1500" />
 
 #### Illinois and surrounding states
 
-Let’s take a closer look at my home state, Illinois, and surrounding
-states. This is basically same process as above but while figuring out
-how to do this stuff, I came across a neat trick: you can simply
-`group_by()` and `summarise()` to get boundaries for each state from the
-`county` shape files.
+Let's take a closer look at my home state, Illinois, and surrounding states. This is basically same process as above but while figuring out how to do this stuff, I came across a neat trick: you can simply `group_by()` and `summarise()` to get boundaries for each state from the `county` shape files.
 
-``` r
+```{r illinois-and-surrounding-states, fig.height = 7, fig.width = 5}
 max_date <- max(complete_df$date)
 
 complete_df %>%
@@ -1509,7 +1394,8 @@ complete_df %>%
   ) +
   labs(
     title = "Covid-19 cases in Illinois and neighbouring states",
-    subtitle = glue("Cases as of {max_date }")
+    subtitle = glue("Cases as of {max_date }"),
+    caption = glue("Last updated: { Sys.Date() }")
   ) +
   annotate(geom = "text", x = -92, y = 38, label = "Illinois") +
   annotate(geom = "text", x = -83.5, y = 39, label = "Indiana") +
@@ -1517,13 +1403,11 @@ complete_df %>%
   annotate(geom = "text", x = -93, y = 43, label = "Wisconsin") 
 ```
 
-<img src="covid_files/figure-gfm/illinois-and-surrounding-states-1.png" width="480" />
-
 #### Illinois over time
 
 How have cases within Illinois progressed over the past month?
 
-``` r
+```{r illnois-over-time, fig.height = 10, fig.width = 7}
 complete_df %>%
   filter(state_abb %in% c("IL")) %>%
   filter(date >= max(date) - days(30)) %>%
@@ -1556,21 +1440,13 @@ complete_df %>%
   facet_wrap(date ~ ., ncol = 7) 
 ```
 
-<img src="covid_files/figure-gfm/illnois-over-time-1.png" width="672" />
-
-Remarkable increase in just a month. From very few counties having 0 to
-~ 10 cases per capita to nearly every county having \> 50 cases per
-100,000 people.
+Remarkable increase in just a month. From very few counties having 0 to ~ 10 cases per capita to nearly every county having > 50 cases per 100,000 people.
 
 #### Chicago
 
-What does Chicago specifically look like? Unfortunately, this is not
-current as I had to copy/paste the data into R (data is from
-2020-04-13). I was unable to find a good source for these data that I
-could readily import into
-R.
+What does Chicago cases look like? Unfortunately, this is not current as I had to copy/paste the data into R (data is from 2020-04-13). I was unable to find a good source for these data that I could automatically import into R.
 
-``` r
+```{r Chicag-enlarged, fig.height = 10, fig.width = 7}
 # https://data.nbcstations.com/national/2020/coronavirus/local-maps/il_zip.html
 # TODO: understand how to scrape the above page
 
@@ -1659,12 +1535,12 @@ read_sf(here('./data/sf_files/chicago_zips/geo_export_ebae7c39-2563-4d20-bdb6-3f
   ggplot() +
   geom_sf(aes(fill = cases), colour = "grey90") +
   geom_sf(data = . %>% summarise(), colour = "black", fill = NA) +
-  geom_sf_text(
-    aes(label = zip),
+  geom_sf_text(aes(label = zip),
     size = 2,
     colour = "white") +
-  coord_sf(crs = 4326, 
-           expand = TRUE) +
+  #coord_quickmap() +
+  coord_sf(crs = "EPSG:4269", 
+            expand = TRUE) +
   scale_fill_continuous_sequential(
     palette = "Inferno",
     name = "Cases per capita",
@@ -1685,7 +1561,11 @@ read_sf(here('./data/sf_files/chicago_zips/geo_export_ebae7c39-2563-4d20-bdb6-3f
     legend.position = "bottom",
     strip.background = element_blank(),
     panel.spacing = unit(0.5, "lines"),
-  ) 
+  ) +
+  labs(
+    title = "Confirmed cases per capita within Chicago",
+    subtitle = "Cases as of 2020-04-12",
+    caption = glue("Last updated: { Sys.Date() }")
+  )
 ```
 
-<img src="covid_files/figure-gfm/Chicag-enlarged-1.png" width="672" />
