@@ -15,7 +15,8 @@ knitr::opts_chunk$set(
   fig.retina = 2,
   message = FALSE,
   warning = FALSE,
-  fig.path = "README_figs/README-"
+  fig.path = "README_figs/README-",
+  dev = c("png", "pdf")
 )
 ```
 
