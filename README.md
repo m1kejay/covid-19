@@ -1,7 +1,7 @@
 Cursory analysis of COVID-19 data
 ================
 Mike Jay
-Last edited 2020-04-16
+Last edited 2020-04-18
 
 Inevitable covid-19 project.
 
@@ -97,20 +97,20 @@ df <- read_csv(file_name, na = "NaN")
 df
 ```
 
-    ## # A tibble: 31,110 x 7
+    ## # A tibble: 32,208 x 7
     ##    case_type country     date       cases n_days continent country_code
     ##    <chr>     <chr>       <date>     <dbl>  <dbl> <chr>     <chr>       
-    ##  1 confirmed Afghanistan 2020-01-22     0    -84 Asia      AF          
-    ##  2 confirmed Afghanistan 2020-01-23     0    -83 Asia      AF          
-    ##  3 confirmed Afghanistan 2020-01-24     0    -82 Asia      AF          
-    ##  4 confirmed Afghanistan 2020-01-25     0    -81 Asia      AF          
-    ##  5 confirmed Afghanistan 2020-01-26     0    -80 Asia      AF          
-    ##  6 confirmed Afghanistan 2020-01-27     0    -79 Asia      AF          
-    ##  7 confirmed Afghanistan 2020-01-28     0    -78 Asia      AF          
-    ##  8 confirmed Afghanistan 2020-01-29     0    -77 Asia      AF          
-    ##  9 confirmed Afghanistan 2020-01-30     0    -76 Asia      AF          
-    ## 10 confirmed Afghanistan 2020-01-31     0    -75 Asia      AF          
-    ## # ... with 31,100 more rows
+    ##  1 confirmed Afghanistan 2020-01-22     0    -87 Asia      AF          
+    ##  2 confirmed Afghanistan 2020-01-23     0    -86 Asia      AF          
+    ##  3 confirmed Afghanistan 2020-01-24     0    -85 Asia      AF          
+    ##  4 confirmed Afghanistan 2020-01-25     0    -84 Asia      AF          
+    ##  5 confirmed Afghanistan 2020-01-26     0    -83 Asia      AF          
+    ##  6 confirmed Afghanistan 2020-01-27     0    -82 Asia      AF          
+    ##  7 confirmed Afghanistan 2020-01-28     0    -81 Asia      AF          
+    ##  8 confirmed Afghanistan 2020-01-29     0    -80 Asia      AF          
+    ##  9 confirmed Afghanistan 2020-01-30     0    -79 Asia      AF          
+    ## 10 confirmed Afghanistan 2020-01-31     0    -78 Asia      AF          
+    ## # ... with 32,198 more rows
 
 ``` r
 # Define caption which  I'll put on most graphs
@@ -926,7 +926,7 @@ summary_latest_mortality_rate <-
   )
 
 # Which countries to highlight (arbitrary)
-highlight_countries <- c("Italy", "Iran", "United Kingdom", "China", "US", "Spain", "Sweden", "Germany", "Algeria")
+highlight_countries <- c("Italy", "Iran", "United Kingdom", "China", "US", "Sweden", "Germany", "Algeria")
 
 # Labels for highlighted countries
 labs <-
@@ -1087,6 +1087,29 @@ states_map_complete %>%
 
 <img src="README_figs/README-state-import-1.png" width="672" />
 
+``` r
+states_map_complete %>%
+  as.data.frame() %>%
+  filter(positive > 10) %>%
+  ggplot(aes(x = dateChecked, y = per_capita, group = state)) +
+  geom_line(colour = "grey30", alpha = 0.5) +
+  geom_line(data = . %>% filter(state_abb.x == "NY"), colour = "red", size = 1) +
+  geom_line(data = . %>% filter(state_abb.x == "IL"), colour = "blue", size = 1) +
+  theme_minimal() +
+  scale_y_log10(
+    label = scales::label_comma()
+  ) +
+  labs(
+    x = "",
+    y = "Confirmed cases per state",
+    title = "Cases per capita over time for each state",
+    subtitle = "red = NY, blue = IL",
+    caption = custom_caption
+  )
+```
+
+<img src="README_figs/README-unnamed-chunk-1-1.png" width="672" />
+
 ### County-level statistics
 
 Let’s look at cases for each county in the US to get a slightly more
@@ -1237,38 +1260,38 @@ following:
 str(complete_df)
 ```
 
-    ## tibble [264,095 x 21] (S3: sf/tbl_df/tbl/data.frame)
-    ##  $ STATEFP        : chr [1:264095] "21" "21" "21" "21" ...
-    ##  $ COUNTYFP       : chr [1:264095] "007" "007" "007" "007" ...
-    ##  $ COUNTYNS       : chr [1:264095] "00516850" "00516850" "00516850" "00516850" ...
-    ##  $ AFFGEOID       : chr [1:264095] "0500000US21007" "0500000US21007" "0500000US21007" "0500000US21007" ...
-    ##  $ GEOID          : chr [1:264095] "21007" "21007" "21007" "21007" ...
-    ##  $ NAME           : chr [1:264095] "Ballard" "Ballard" "Ballard" "Ballard" ...
-    ##  $ LSAD           : chr [1:264095] "06" "06" "06" "06" ...
-    ##  $ ALAND          : num [1:264095] 6.39e+08 6.39e+08 6.39e+08 6.39e+08 6.39e+08 ...
-    ##  $ AWATER         : num [1:264095] 69473325 69473325 69473325 69473325 69473325 ...
-    ##  $ geometry       :sfc_MULTIPOLYGON of length 264095; first list element: List of 1
+    ## tibble [270,309 x 21] (S3: sf/tbl_df/tbl/data.frame)
+    ##  $ STATEFP        : chr [1:270309] "21" "21" "21" "21" ...
+    ##  $ COUNTYFP       : chr [1:270309] "007" "007" "007" "007" ...
+    ##  $ COUNTYNS       : chr [1:270309] "00516850" "00516850" "00516850" "00516850" ...
+    ##  $ AFFGEOID       : chr [1:270309] "0500000US21007" "0500000US21007" "0500000US21007" "0500000US21007" ...
+    ##  $ GEOID          : chr [1:270309] "21007" "21007" "21007" "21007" ...
+    ##  $ NAME           : chr [1:270309] "Ballard" "Ballard" "Ballard" "Ballard" ...
+    ##  $ LSAD           : chr [1:270309] "06" "06" "06" "06" ...
+    ##  $ ALAND          : num [1:270309] 6.39e+08 6.39e+08 6.39e+08 6.39e+08 6.39e+08 ...
+    ##  $ AWATER         : num [1:270309] 69473325 69473325 69473325 69473325 69473325 ...
+    ##  $ geometry       :sfc_MULTIPOLYGON of length 270309; first list element: List of 1
     ##   ..$ :List of 1
     ##   .. ..$ : num [1:294, 1:2] -89.2 -89.2 -89.2 -89.2 -89.2 ...
     ##   ..- attr(*, "class")= chr [1:3] "XY" "MULTIPOLYGON" "sfg"
-    ##  $ county_fips    : num [1:264095] 21007 21007 21007 21007 21007 ...
-    ##  $ state_fips     : num [1:264095] 21 21 21 21 21 21 21 21 21 21 ...
-    ##  $ county         : chr [1:264095] "Ballard County" "Ballard County" "Ballard County" "Ballard County" ...
-    ##  $ state_abb      : chr [1:264095] "KY" "KY" "KY" "KY" ...
-    ##  $ date           : Date[1:264095], format: "2020-01-22" "2020-01-23" ...
-    ##  $ confirmed_cases: num [1:264095] 0 0 0 0 0 0 0 0 0 0 ...
-    ##  $ state          : chr [1:264095] "Kentucky" "Kentucky" "Kentucky" "Kentucky" ...
-    ##  $ rank           : num [1:264095] 109 109 109 109 109 109 109 109 109 109 ...
-    ##  $ population     : num [1:264095] 8090 8090 8090 8090 8090 8090 8090 8090 8090 8090 ...
-    ##  $ per_capita     : num [1:264095] 0 0 0 0 0 0 0 0 0 0 ...
-    ##  $ label          : 'glue' chr [1:264095] "22 Jan" "23 Jan" "24 Jan" "25 Jan" ...
+    ##  $ county_fips    : num [1:270309] 21007 21007 21007 21007 21007 ...
+    ##  $ state_fips     : num [1:270309] 21 21 21 21 21 21 21 21 21 21 ...
+    ##  $ county         : chr [1:270309] "Ballard County" "Ballard County" "Ballard County" "Ballard County" ...
+    ##  $ state_abb      : chr [1:270309] "KY" "KY" "KY" "KY" ...
+    ##  $ date           : Date[1:270309], format: "2020-01-22" "2020-01-23" ...
+    ##  $ confirmed_cases: num [1:270309] 0 0 0 0 0 0 0 0 0 0 ...
+    ##  $ state          : chr [1:270309] "Kentucky" "Kentucky" "Kentucky" "Kentucky" ...
+    ##  $ rank           : num [1:270309] 109 109 109 109 109 109 109 109 109 109 ...
+    ##  $ population     : num [1:270309] 8090 8090 8090 8090 8090 8090 8090 8090 8090 8090 ...
+    ##  $ per_capita     : num [1:270309] 0 0 0 0 0 0 0 0 0 0 ...
+    ##  $ label          : 'glue' chr [1:270309] "22 Jan" "23 Jan" "24 Jan" "25 Jan" ...
     ##  - attr(*, "sf_column")= chr "geometry"
     ##  - attr(*, "agr")= Factor w/ 3 levels "constant","aggregate",..: NA NA NA NA NA NA NA NA NA NA ...
     ##   ..- attr(*, "names")= chr [1:20] "STATEFP" "COUNTYFP" "COUNTYNS" "AFFGEOID" ...
 
 This dataframe now has the geometry for each county and crucially the
 number of cases (and per-capita information) for each day from
-2020-01-22 to 2020-04-15.
+2020-01-22 to 2020-04-17.
 
 Now let’s build some
 maps\!
@@ -1424,7 +1447,7 @@ knitr::include_graphics(glue("./output/{ min_date }-{ max_date }.png"))
 
 ``` r
 min_date <- as.Date("2020-04-01")
-max_date <- as.Date(max(complete_df$date))
+max_date <- as.Date(max(complete_df$date, na.rm = T))
 
 map_seq_plot(df = complete_df, 
              min_date = min_date, 
@@ -1436,18 +1459,18 @@ map_seq_plot(df = complete_df,
              ext = "png")
 ```
 
-    ## Output saved to: output/2020-04-01-2020-04-15.png
+    ## Output saved to: output/2020-04-01-2020-04-17.png
 
 ``` r
 knitr::include_graphics(glue("./output/{ min_date }-{ max_date }.png"))
 ```
 
-<img src="./output/2020-04-01-2020-04-15.png" width="1500" />
+<img src="./output/2020-04-01-2020-04-17.png" width="1500" />
 
 ``` r
 # hacky way to get one day only
-min_date <- as.Date(max(complete_df$date))
-max_date <- as.Date(max(complete_df$date))
+min_date <- as.Date(max(complete_df$date, na.rm = T))
+max_date <- as.Date(max(complete_df$date, na.rm = T))
 
 map_seq_plot(df = complete_df, 
              min_date = min_date, 
@@ -1459,13 +1482,13 @@ map_seq_plot(df = complete_df,
              ext = "png")
 ```
 
-    ## Output saved to: output/2020-04-15-2020-04-15.png
+    ## Output saved to: output/2020-04-17-2020-04-17.png
 
 ``` r
 knitr::include_graphics(glue("./output/{ min_date }-{ max_date }.png"))
 ```
 
-<img src="./output/2020-04-15-2020-04-15.png" width="1500" />
+<img src="./output/2020-04-17-2020-04-17.png" width="1500" />
 
 #### Illinois and surrounding states
 
@@ -1476,11 +1499,11 @@ how to do this stuff, I came across a neat trick: you can simply
 `county` shape files.
 
 ``` r
-max_date <- max(complete_df$date)
+max_date <- max(complete_df$date, na.rm = T)
 
 complete_df %>%
   filter(state_abb %in% c("IL", "WI", "MI", "IN")) %>% #, "MO", "IA"
-  filter(date == max(date)) %>%
+  filter(date == max(date, na.rm = T)) %>%
   ggplot() +
   geom_sf(aes(geometry = geometry, fill = per_capita), colour = "grey90") +
   geom_sf(data = . %>% group_by(state_abb) %>% summarise(), colour = "grey15", fill = NA) +
@@ -1529,7 +1552,7 @@ How have cases within Illinois progressed over the past month?
 ``` r
 complete_df %>%
   filter(state_abb %in% c("IL")) %>%
-  filter(date >= max(date) - days(30)) %>%
+  filter(date >= max(date, na.rm = T) - days(30)) %>%
  # mutate(label = format(date, "%d %b")) %>%
   ggplot(aes(fill = per_capita)) +
   geom_sf(aes(geometry = geometry)) +

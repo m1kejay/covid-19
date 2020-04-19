@@ -20,7 +20,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-Inevitable covid-19 project.
+Inevitable covid-19 project. 
 
 # Importing and cleaning data
 
@@ -885,7 +885,7 @@ summary_latest_mortality_rate <-
   )
 
 # Which countries to highlight (arbitrary)
-highlight_countries <- c("Italy", "Iran", "United Kingdom", "China", "US", "Spain", "Sweden", "Germany", "Algeria")
+highlight_countries <- c("Italy", "Iran", "United Kingdom", "China", "US", "Sweden", "Germany", "Algeria")
 
 # Labels for highlighted countries
 labs <-
@@ -1040,6 +1040,27 @@ states_map_complete %>%
   ) +
   theme(
     legend.position = "bottom"
+  )
+```
+
+```{r}
+states_map_complete %>%
+  as.data.frame() %>%
+  filter(positive > 10) %>%
+  ggplot(aes(x = dateChecked, y = per_capita, group = state)) +
+  geom_line(colour = "grey30", alpha = 0.5) +
+  geom_line(data = . %>% filter(state_abb.x == "NY"), colour = "red", size = 1) +
+  geom_line(data = . %>% filter(state_abb.x == "IL"), colour = "blue", size = 1) +
+  theme_minimal() +
+  scale_y_log10(
+    label = scales::label_comma()
+  ) +
+  labs(
+    x = "",
+    y = "Confirmed cases per state",
+    title = "Cases per capita over time for each state",
+    subtitle = "red = NY, blue = IL",
+    caption = custom_caption
   )
 ```
 
@@ -1323,7 +1344,7 @@ knitr::include_graphics(glue("./output/{ min_date }-{ max_date }.png"))
 
 ```{r april-to-present}
 min_date <- as.Date("2020-04-01")
-max_date <- as.Date(max(complete_df$date))
+max_date <- as.Date(max(complete_df$date, na.rm = T))
 
 map_seq_plot(df = complete_df, 
              min_date = min_date, 
@@ -1339,8 +1360,8 @@ knitr::include_graphics(glue("./output/{ min_date }-{ max_date }.png"))
 
 ```{r present-day-only}
 # hacky way to get one day only
-min_date <- as.Date(max(complete_df$date))
-max_date <- as.Date(max(complete_df$date))
+min_date <- as.Date(max(complete_df$date, na.rm = T))
+max_date <- as.Date(max(complete_df$date, na.rm = T))
 
 map_seq_plot(df = complete_df, 
              min_date = min_date, 
@@ -1360,11 +1381,11 @@ knitr::include_graphics(glue("./output/{ min_date }-{ max_date }.png"))
 Let's take a closer look at my home state, Illinois, and surrounding states. This is basically same process as above but while figuring out how to do this stuff, I came across a neat trick: you can simply `group_by()` and `summarise()` to get boundaries for each state from the `county` shape files.
 
 ```{r illinois-and-surrounding-states, fig.height = 7, fig.width = 5}
-max_date <- max(complete_df$date)
+max_date <- max(complete_df$date, na.rm = T)
 
 complete_df %>%
   filter(state_abb %in% c("IL", "WI", "MI", "IN")) %>% #, "MO", "IA"
-  filter(date == max(date)) %>%
+  filter(date == max(date, na.rm = T)) %>%
   ggplot() +
   geom_sf(aes(geometry = geometry, fill = per_capita), colour = "grey90") +
   geom_sf(data = . %>% group_by(state_abb) %>% summarise(), colour = "grey15", fill = NA) +
@@ -1411,7 +1432,7 @@ How have cases within Illinois progressed over the past month?
 ```{r illnois-over-time, fig.height = 10, fig.width = 7}
 complete_df %>%
   filter(state_abb %in% c("IL")) %>%
-  filter(date >= max(date) - days(30)) %>%
+  filter(date >= max(date, na.rm = T) - days(30)) %>%
  # mutate(label = format(date, "%d %b")) %>%
   ggplot(aes(fill = per_capita)) +
   geom_sf(aes(geometry = geometry)) +
@@ -1569,4 +1590,3 @@ read_sf(here('./data/sf_files/chicago_zips/geo_export_ebae7c39-2563-4d20-bdb6-3f
     caption = glue("Last updated: { Sys.Date() }")
   )
 ```
-
