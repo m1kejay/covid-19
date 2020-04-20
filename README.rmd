@@ -1,7 +1,7 @@
 ---
 title: "Cursory analysis of COVID-19 data"
-author: "Mike Jay"
-date: "Last edited `r Sys.Date()`"
+author: "Mike Jay. "
+date: "Last updated `r Sys.Date()`"
 output:
   github_document:
     toc: TRUE
@@ -20,7 +20,6 @@ knitr::opts_chunk$set(
 )
 ```
 
-Inevitable covid-19 project. 
 
 # Importing and cleaning data
 
@@ -974,7 +973,8 @@ daily_state_cases  <-
     state = state.name[grep(state, state.abb)[1]]
   )
 
-#Extract and clean state information (interested in population mainly)
+if (!file.exists(here("./data/state_info.csv"))) {
+  #Extract and clean state information (interested in population mainly)
  state_info <-
 "https://en.wikipedia.org/wiki/List_of_states_and_territories_of_the_United_States" %>%
   read_html() %>%
@@ -1008,7 +1008,10 @@ daily_state_cases  <-
   )
 
 write_csv(state_info, here("./data/state_info.csv"))
+}
+
 state_info <- read_csv(here("./data/state_info.csv"))
+
 
 states_map <- st_as_sf(maps::map("state", plot = FALSE, fill = TRUE))
 
@@ -1043,7 +1046,7 @@ states_map_complete %>%
   )
 ```
 
-```{r}
+```{r cases-per-capita-per-state}
 states_map_complete %>%
   as.data.frame() %>%
   filter(positive > 10) %>%
@@ -1057,7 +1060,7 @@ states_map_complete %>%
   ) +
   labs(
     x = "",
-    y = "Confirmed cases per state",
+    y = "Confirmed cases per 100,000 per state",
     title = "Cases per capita over time for each state",
     subtitle = "red = NY, blue = IL",
     caption = custom_caption
