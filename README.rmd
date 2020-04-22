@@ -1066,20 +1066,35 @@ states_map_complete %>%
   )
 ```
 
-```{r fig.height = 6, fig.width = 9}
-daily_state_cases %>%
-  arrange(state, dateChecked) %>%
-  group_by(state) %>%
-  mutate(daily_change = positive - lag(positive, 1)) %>%
-  select(date, state, positive, daily_change, everything()) %>%
-  ungroup() %>%
-  filter(!is.na(state)) %>%
-  mutate(protesting = if_else(state %in% c("Colorado", "Michigan"), "yes", "no"))
-  ggplot(aes(x = dateChecked, y = daily_change)) +
-  geom_line(aes(group = state)) +
-  facet_wrap(vars(state), scales = "free_y") +
-  theme_void()
+### County-level statistics
+
+Let's look at cases for each county in the US to get a slightly more nuanced view.
+
+First, let's read in the covid-19 cases data:
+
+```{r}
+# https://usafactsstatic.blob.core.windows.net/public/data/covid-19/covid_deaths_usafacts.csv
+
+# Read and clean covid-19 cases on a county basis 
+county_cases <-
+  read_csv("https://usafactsstatic.blob.core.windows.net/public/data/covid-19/covid_confirmed_usafacts.csv") %>%
+  pivot_longer(-c(countyFIPS, `County Name`, State, stateFIPS), 
+               names_to = "date", 
+               values_to = "confirmed_cases") %>%
+  janitor::clean_names() %>%
+  mutate(date = mdy(date)) %>%
+  rename(
+    state_abb = state,
+    county = county_name
+  ) %>%
+  rowwise() %>%
+  mutate(
+    state = state.name[grep(state_abb, state.abb)[1]]
+  )
 ```
+
+
+Quick detour... How many new cases are there on a daily basis within each state (Using this county data as above data has some irregularities? - Jumps to 0 for confirmed cases) Also let's split data based on those states which have news-worthy reports of protests? Later lets bin data on reopening dates...
 
 ```{r warning = FALSE}
 county_cases %>%
@@ -1115,33 +1130,6 @@ county_cases %>%
   )
 ```
 
-
-### County-level statistics
-
-Let's look at cases for each county in the US to get a slightly more nuanced view.
-
-First, let's read in the covid-19 cases data:
-
-```{r}
-# https://usafactsstatic.blob.core.windows.net/public/data/covid-19/covid_deaths_usafacts.csv
-
-# Read and clean covid-19 cases on a county basis 
-county_cases <-
-  read_csv("https://usafactsstatic.blob.core.windows.net/public/data/covid-19/covid_confirmed_usafacts.csv") %>%
-  pivot_longer(-c(countyFIPS, `County Name`, State, stateFIPS), 
-               names_to = "date", 
-               values_to = "confirmed_cases") %>%
-  janitor::clean_names() %>%
-  mutate(date = mdy(date)) %>%
-  rename(
-    state_abb = state,
-    county = county_name
-  ) %>%
-  rowwise() %>%
-  mutate(
-    state = state.name[grep(state_abb, state.abb)[1]]
-  )
-```
 
 Now we want to find the populations for each county within each state. I came across a website - or strictly many websites - which follow the same template where `x` in `www.x-demographics.com/counties_by_population` is the state name without spaces. I realised I can iterate over this website(s) for each state using `map_dfr()` and end up with a dataframe containing the county-level populations for all states. 
 
