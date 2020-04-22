@@ -109,9 +109,6 @@ write_csv(df, file_name)
 # Redefining na  so NA gets encoded as the country_code for Namibia
 df <- read_csv(file_name, na = "NaN")
 df
-
-# Define caption which  I'll put on most graphs
-custom_caption <- glue("Last updated {Sys.Date()}\nData: https://github.com/CSSEGISandData/COVID-19/")
 ```
 
 This code block takes the raw data from github and does a few key things:
@@ -127,6 +124,8 @@ Now we can move onto plotting the data...
 ### Confirmed cases
 
 ```{r days-vs-confirmed-cases, fig.height = 6, fig.width = 7}
+# Define caption which  I'll put on most graphs
+custom_caption <- glue("Last updated {Sys.Date()}\nData: https://github.com/CSSEGISandData/COVID-19/")
 
 days_vs_confirmed <-
   df %>%
@@ -1066,6 +1065,56 @@ states_map_complete %>%
     caption = custom_caption
   )
 ```
+
+```{r fig.height = 6, fig.width = 9}
+daily_state_cases %>%
+  arrange(state, dateChecked) %>%
+  group_by(state) %>%
+  mutate(daily_change = positive - lag(positive, 1)) %>%
+  select(date, state, positive, daily_change, everything()) %>%
+  ungroup() %>%
+  filter(!is.na(state)) %>%
+  mutate(protesting = if_else(state %in% c("Colorado", "Michigan"), "yes", "no"))
+  ggplot(aes(x = dateChecked, y = daily_change)) +
+  geom_line(aes(group = state)) +
+  facet_wrap(vars(state), scales = "free_y") +
+  theme_void()
+```
+
+```{r warning = FALSE}
+county_cases %>%
+  group_by(state_abb, state, date) %>%
+  summarise(confirmed_cases = sum(confirmed_cases, na.rm = T)) %>%
+  ungroup() %>%
+  arrange(state, date) %>%
+  group_by(state_abb, state) %>%
+  mutate(daily_change = confirmed_cases - lag(confirmed_cases)) %>%
+  ungroup() %>%
+  filter(!is.na(state)) %>%
+  mutate(protesting = if_else(state %in% c("Colorado", "Michigan", "Ohio", "North Carolina", "Minnesota", "Utah", "Virginia", "Kentucky", "Maryland", "Indiana"), "Currently protesting", "No protests"),
+         protesting = fct_rev(protesting)) %>%
+  ggplot(aes(x = date, y = daily_change)) +
+  geom_line(aes(group = state, colour = protesting), alpha = 0.5) +
+  geom_smooth(colour = "black") +
+  facet_wrap(vars(protesting)) +
+  scale_y_log10() +
+  scale_x_date(
+    date_labels = "%d %b",
+    date_breaks = "7 day",
+    expand = c(0, 0),
+    limits = c(as.Date("2020-03-01"), NA)
+  ) +
+  theme_minimal() +
+  theme(
+    aspect.ratio = 1,
+    legend.position = "none"
+  ) +
+  labs(
+    x = "",
+    y = "Daily new cases"
+  )
+```
+
 
 ### County-level statistics
 
