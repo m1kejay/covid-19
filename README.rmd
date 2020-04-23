@@ -32,7 +32,7 @@ library(sf) # Mapping
 library(tigris) # Mapping 
 options(tigris_use_cache = TRUE)
 options(tigris_class = "sf")
-library(rvest) # For pulling data from wikipedia
+library(rvest) # For pulling data from websites
 library(tidyverse) # Tidying data
 library(patchwork) # For plotting graphs together
 library(lubridate) # Working with dates
