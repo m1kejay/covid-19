@@ -115,7 +115,7 @@ This code block takes the raw data from github and does a few key things:
 
 * By using `map_dfr()`, it takes the two files, `time_series_covid19_confirmed_global.csv` and `time_series_covid19_deaths_global.csv`, and binds the data together into one dataframe.
 * Converts the new dataframe from wide to long format.
-* Removes the 'Diamond Princess' (cruise ship) data. 
+* Removes the 'Diamond Princess' and 'MS Zaandam' (cruise ship) data. 
 * Aggregates across each country/day the number of cases. 
 * Finally it introduces two new variables: `continent` and `country_code` (using the `countrycode` package) which will be useful for plotting purposes and pulling in statistics from `worldbank`.
 
@@ -883,7 +883,7 @@ summary_latest_mortality_rate <-
   )
 
 # Which countries to highlight (arbitrary)
-highlight_countries <- c("Italy", "Iran", "United Kingdom", "China", "US", "Sweden", "Germany", "Algeria")
+highlight_countries <- c("Italy", "Iran", "United Kingdom", "China", "US", "Sweden", "Germany")
 
 # Labels for highlighted countries
 labs <-
