@@ -1367,7 +1367,7 @@ map_seq_plot <- function(df, min_date, max_date, range, title, subtitle, caption
 ```
 
 
-```{r month-of-march}
+```{r month-of-march, eval = FALSE}
 min_date <- "2020-03-01"
 max_date <- "2020-03-31"
 map_seq_plot(df = complete_df, 
