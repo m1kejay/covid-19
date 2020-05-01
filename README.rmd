@@ -226,7 +226,7 @@ df %>%
     name = "Number of days since\n first confirmed case",
     palette = "Greens",
     rev = TRUE,
-    limits = c(0, NA)
+    #limits = c(0, NA) # Comment out since we're so far into the pandemic now
   ) +
   labs(
     title = "Confirmed Cases of COVID-19",
@@ -313,7 +313,7 @@ p <-
   # Background fill
   geom_rect(
     data = labels, 
-    aes(fill = continent, alpha = ), 
+    aes(fill = continent), 
     xmin = -Inf, 
     xmax = Inf, 
     ymin = -Inf, 
@@ -965,7 +965,7 @@ ggplot() +
 ```{r state-import}
 # Import daily _state_ level
 daily_state_cases  <-
-  read_csv("http://covidtracking.com/api/states/daily.csv") %>%
+  read_csv("https://covidtracking.com/api/v1/states/daily.csv") %>%
   rowwise(state) %>%
   mutate(
     state_abb = state,
