@@ -299,12 +299,12 @@ max_cases <- max(correct_days$cases)
 ann_x <-
   tibble::tribble(
     ~continent, ~country_code, ~label, ~n_days, ~cases,
-    "Oceania", "PG", "Day", max_days / 2, 0L
+    "Oceania", "FJ", "Day", max_days / 2, 0L
   )
 ann_y <-
   tibble::tribble(
     ~continent, ~country_code, ~label, ~n_days, ~cases,
-    "Oceania", "PG", "Cases", 0L, max_cases / 2
+    "Oceania", "FJ", "Cases", 0L, max_cases / 2
   )
 
 # Define plot
@@ -1130,6 +1130,49 @@ county_cases %>%
   )
 ```
 
+Some reports the drop we see in daily cases is almost entirely due to drops in NY... let's see...
+
+```{r warning = FALSE}
+county_cases %>%
+  mutate(dummy = if_else(state_abb == "NY", "NY", "Rest of US")) %>%
+  group_by(dummy, date) %>%
+  summarise(confirmed_cases = sum(confirmed_cases, na.rm = T)) %>%
+  ungroup() %>%
+  arrange(dummy, date) %>%
+  group_by(dummy) %>%
+  mutate(daily_change = confirmed_cases - lag(confirmed_cases)) %>%
+  ungroup() %>%
+  select(-confirmed_cases) %>%
+  pivot_wider(names_from = dummy, values_from = daily_change) %>%
+  mutate(Total = `Rest of US` + NY) %>%
+  pivot_longer(-date, names_to = "dummy", values_to = "daily_change") %>%
+  ggplot(aes(x = date, y = daily_change)) +
+  geom_line(aes(group = dummy, colour = dummy), alpha = 0.5) +
+  geom_point(aes(group = dummy, colour = dummy), alpha = 0.25) +
+  geom_smooth(aes(group = dummy, colour = dummy), se = FALSE) +
+  #geom_smooth(colour = "black") +
+  scale_x_date(
+    date_labels = "%d %b",
+    date_breaks = "7 day",
+    expand = c(0, 0),
+    limits = c(as.Date("2020-03-01"), NA)
+  ) +
+  theme_minimal() +
+  theme(
+    panel.grid.minor.x = element_blank(),
+    aspect.ratio = 1
+  ) +
+  labs(
+    colour = "",
+    x = "",
+    y = "Daily new cases",
+    subtitle = "loess fit (y ~ x)"
+  )
+```
+
+Yikes, maybe some merit to that....
+
+----
 
 Now we want to find the populations for each county within each state. I came across a website - or strictly many websites - which follow the same template where `x` in `www.x-demographics.com/counties_by_population` is the state name without spaces. I realised I can iterate over this website(s) for each state using `map_dfr()` and end up with a dataframe containing the county-level populations for all states. 
 

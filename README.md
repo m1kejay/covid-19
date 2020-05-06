@@ -1,7 +1,7 @@
 Cursory analysis of COVID-19 data
 ================
 Mike Jay.
-Last updated 2020-05-03
+Last updated 2020-05-05
 
 # Importing and cleaning data
 
@@ -95,20 +95,20 @@ df <- read_csv(file_name, na = "NaN")
 df
 ```
 
-    ## # A tibble: 37,740 x 7
+    ## # A tibble: 38,480 x 7
     ##    case_type country     date       cases n_days continent country_code
     ##    <chr>     <chr>       <date>     <dbl>  <dbl> <chr>     <chr>       
-    ##  1 confirmed Afghanistan 2020-01-22     0   -101 Asia      AF          
-    ##  2 confirmed Afghanistan 2020-01-23     0   -100 Asia      AF          
-    ##  3 confirmed Afghanistan 2020-01-24     0    -99 Asia      AF          
-    ##  4 confirmed Afghanistan 2020-01-25     0    -98 Asia      AF          
-    ##  5 confirmed Afghanistan 2020-01-26     0    -97 Asia      AF          
-    ##  6 confirmed Afghanistan 2020-01-27     0    -96 Asia      AF          
-    ##  7 confirmed Afghanistan 2020-01-28     0    -95 Asia      AF          
-    ##  8 confirmed Afghanistan 2020-01-29     0    -94 Asia      AF          
-    ##  9 confirmed Afghanistan 2020-01-30     0    -93 Asia      AF          
-    ## 10 confirmed Afghanistan 2020-01-31     0    -92 Asia      AF          
-    ## # ... with 37,730 more rows
+    ##  1 confirmed Afghanistan 2020-01-22     0   -103 Asia      AF          
+    ##  2 confirmed Afghanistan 2020-01-23     0   -102 Asia      AF          
+    ##  3 confirmed Afghanistan 2020-01-24     0   -101 Asia      AF          
+    ##  4 confirmed Afghanistan 2020-01-25     0   -100 Asia      AF          
+    ##  5 confirmed Afghanistan 2020-01-26     0    -99 Asia      AF          
+    ##  6 confirmed Afghanistan 2020-01-27     0    -98 Asia      AF          
+    ##  7 confirmed Afghanistan 2020-01-28     0    -97 Asia      AF          
+    ##  8 confirmed Afghanistan 2020-01-29     0    -96 Asia      AF          
+    ##  9 confirmed Afghanistan 2020-01-30     0    -95 Asia      AF          
+    ## 10 confirmed Afghanistan 2020-01-31     0    -94 Asia      AF          
+    ## # ... with 38,470 more rows
 
 This code block takes the raw data from github and does a few key
 things:
@@ -310,12 +310,12 @@ max_cases <- max(correct_days$cases)
 ann_x <-
   tibble::tribble(
     ~continent, ~country_code, ~label, ~n_days, ~cases,
-    "Oceania", "PG", "Day", max_days / 2, 0L
+    "Oceania", "FJ", "Day", max_days / 2, 0L
   )
 ann_y <-
   tibble::tribble(
     ~continent, ~country_code, ~label, ~n_days, ~cases,
-    "Oceania", "PG", "Cases", 0L, max_cases / 2
+    "Oceania", "FJ", "Cases", 0L, max_cases / 2
   )
 
 # Define plot
@@ -1181,6 +1181,53 @@ county_cases %>%
 
 <img src="README_figs/README-unnamed-chunk-2-1.png" width="672" />
 
+Some reports the drop we see in daily cases is almost entirely due to
+drops in NY… let’s see…
+
+``` r
+county_cases %>%
+  mutate(dummy = if_else(state_abb == "NY", "NY", "Rest of US")) %>%
+  group_by(dummy, date) %>%
+  summarise(confirmed_cases = sum(confirmed_cases, na.rm = T)) %>%
+  ungroup() %>%
+  arrange(dummy, date) %>%
+  group_by(dummy) %>%
+  mutate(daily_change = confirmed_cases - lag(confirmed_cases)) %>%
+  ungroup() %>%
+  select(-confirmed_cases) %>%
+  pivot_wider(names_from = dummy, values_from = daily_change) %>%
+  mutate(Total = `Rest of US` + NY) %>%
+  pivot_longer(-date, names_to = "dummy", values_to = "daily_change") %>%
+  ggplot(aes(x = date, y = daily_change)) +
+  geom_line(aes(group = dummy, colour = dummy), alpha = 0.5) +
+  geom_point(aes(group = dummy, colour = dummy), alpha = 0.25) +
+  geom_smooth(aes(group = dummy, colour = dummy), se = FALSE) +
+  #geom_smooth(colour = "black") +
+  scale_x_date(
+    date_labels = "%d %b",
+    date_breaks = "7 day",
+    expand = c(0, 0),
+    limits = c(as.Date("2020-03-01"), NA)
+  ) +
+  theme_minimal() +
+  theme(
+    panel.grid.minor.x = element_blank(),
+    aspect.ratio = 1
+  ) +
+  labs(
+    colour = "",
+    x = "",
+    y = "Daily new cases",
+    subtitle = "loess fit (y ~ x)"
+  )
+```
+
+<img src="README_figs/README-unnamed-chunk-3-1.png" width="672" />
+
+Yikes, maybe some merit to that….
+
+-----
+
 Now we want to find the populations for each county within each state. I
 came across a website - or strictly many websites - which follow the
 same template where `x` in
@@ -1302,38 +1349,38 @@ following:
 str(complete_df)
 ```
 
-    ## tibble [316,914 x 21] (S3: sf/tbl_df/tbl/data.frame)
-    ##  $ STATEFP        : chr [1:316914] "21" "21" "21" "21" ...
-    ##  $ COUNTYFP       : chr [1:316914] "007" "007" "007" "007" ...
-    ##  $ COUNTYNS       : chr [1:316914] "00516850" "00516850" "00516850" "00516850" ...
-    ##  $ AFFGEOID       : chr [1:316914] "0500000US21007" "0500000US21007" "0500000US21007" "0500000US21007" ...
-    ##  $ GEOID          : chr [1:316914] "21007" "21007" "21007" "21007" ...
-    ##  $ NAME           : chr [1:316914] "Ballard" "Ballard" "Ballard" "Ballard" ...
-    ##  $ LSAD           : chr [1:316914] "06" "06" "06" "06" ...
-    ##  $ ALAND          : num [1:316914] 6.39e+08 6.39e+08 6.39e+08 6.39e+08 6.39e+08 ...
-    ##  $ AWATER         : num [1:316914] 69473325 69473325 69473325 69473325 69473325 ...
-    ##  $ geometry       :sfc_MULTIPOLYGON of length 316914; first list element: List of 1
+    ## tibble [323,128 x 21] (S3: sf/tbl_df/tbl/data.frame)
+    ##  $ STATEFP        : chr [1:323128] "21" "21" "21" "21" ...
+    ##  $ COUNTYFP       : chr [1:323128] "007" "007" "007" "007" ...
+    ##  $ COUNTYNS       : chr [1:323128] "00516850" "00516850" "00516850" "00516850" ...
+    ##  $ AFFGEOID       : chr [1:323128] "0500000US21007" "0500000US21007" "0500000US21007" "0500000US21007" ...
+    ##  $ GEOID          : chr [1:323128] "21007" "21007" "21007" "21007" ...
+    ##  $ NAME           : chr [1:323128] "Ballard" "Ballard" "Ballard" "Ballard" ...
+    ##  $ LSAD           : chr [1:323128] "06" "06" "06" "06" ...
+    ##  $ ALAND          : num [1:323128] 6.39e+08 6.39e+08 6.39e+08 6.39e+08 6.39e+08 ...
+    ##  $ AWATER         : num [1:323128] 69473325 69473325 69473325 69473325 69473325 ...
+    ##  $ geometry       :sfc_MULTIPOLYGON of length 323128; first list element: List of 1
     ##   ..$ :List of 1
     ##   .. ..$ : num [1:294, 1:2] -89.2 -89.2 -89.2 -89.2 -89.2 ...
     ##   ..- attr(*, "class")= chr [1:3] "XY" "MULTIPOLYGON" "sfg"
-    ##  $ county_fips    : num [1:316914] 21007 21007 21007 21007 21007 ...
-    ##  $ state_fips     : num [1:316914] 21 21 21 21 21 21 21 21 21 21 ...
-    ##  $ county         : chr [1:316914] "Ballard County" "Ballard County" "Ballard County" "Ballard County" ...
-    ##  $ state_abb      : chr [1:316914] "KY" "KY" "KY" "KY" ...
-    ##  $ date           : Date[1:316914], format: "2020-01-22" "2020-01-23" ...
-    ##  $ confirmed_cases: num [1:316914] 0 0 0 0 0 0 0 0 0 0 ...
-    ##  $ state          : chr [1:316914] "Kentucky" "Kentucky" "Kentucky" "Kentucky" ...
-    ##  $ rank           : num [1:316914] 109 109 109 109 109 109 109 109 109 109 ...
-    ##  $ population     : num [1:316914] 8090 8090 8090 8090 8090 8090 8090 8090 8090 8090 ...
-    ##  $ per_capita     : num [1:316914] 0 0 0 0 0 0 0 0 0 0 ...
-    ##  $ label          : 'glue' chr [1:316914] "22 Jan" "23 Jan" "24 Jan" "25 Jan" ...
+    ##  $ county_fips    : num [1:323128] 21007 21007 21007 21007 21007 ...
+    ##  $ state_fips     : num [1:323128] 21 21 21 21 21 21 21 21 21 21 ...
+    ##  $ county         : chr [1:323128] "Ballard County" "Ballard County" "Ballard County" "Ballard County" ...
+    ##  $ state_abb      : chr [1:323128] "KY" "KY" "KY" "KY" ...
+    ##  $ date           : Date[1:323128], format: "2020-01-22" "2020-01-23" ...
+    ##  $ confirmed_cases: num [1:323128] 0 0 0 0 0 0 0 0 0 0 ...
+    ##  $ state          : chr [1:323128] "Kentucky" "Kentucky" "Kentucky" "Kentucky" ...
+    ##  $ rank           : num [1:323128] 109 109 109 109 109 109 109 109 109 109 ...
+    ##  $ population     : num [1:323128] 8090 8090 8090 8090 8090 8090 8090 8090 8090 8090 ...
+    ##  $ per_capita     : num [1:323128] 0 0 0 0 0 0 0 0 0 0 ...
+    ##  $ label          : 'glue' chr [1:323128] "22 Jan" "23 Jan" "24 Jan" "25 Jan" ...
     ##  - attr(*, "sf_column")= chr "geometry"
     ##  - attr(*, "agr")= Factor w/ 3 levels "constant","aggregate",..: NA NA NA NA NA NA NA NA NA NA ...
     ##   ..- attr(*, "names")= chr [1:20] "STATEFP" "COUNTYFP" "COUNTYNS" "AFFGEOID" ...
 
 This dataframe now has the geometry for each county and crucially the
 number of cases (and per-capita information) for each day from
-2020-01-22 to 2020-05-02.
+2020-01-22 to 2020-05-04.
 
 Now let’s build some
 maps\!
@@ -1495,13 +1542,13 @@ map_seq_plot(df = complete_df,
              ext = "png")
 ```
 
-    ## Output saved to: output/2020-04-01-2020-05-02.png
+    ## Output saved to: output/2020-04-01-2020-05-04.png
 
 ``` r
 knitr::include_graphics(glue("./output/{ min_date }-{ max_date }.png"))
 ```
 
-<img src="./output/2020-04-01-2020-05-02.png" width="1500" />
+<img src="./output/2020-04-01-2020-05-04.png" width="1500" />
 
 ``` r
 # hacky way to get one day only
@@ -1518,13 +1565,13 @@ map_seq_plot(df = complete_df,
              ext = "png")
 ```
 
-    ## Output saved to: output/2020-05-02-2020-05-02.png
+    ## Output saved to: output/2020-05-04-2020-05-04.png
 
 ``` r
 knitr::include_graphics(glue("./output/{ min_date }-{ max_date }.png"))
 ```
 
-<img src="./output/2020-05-02-2020-05-02.png" width="1500" />
+<img src="./output/2020-05-04-2020-05-04.png" width="1500" />
 
 #### Illinois and surrounding states
 
