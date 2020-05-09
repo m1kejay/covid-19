@@ -230,7 +230,7 @@ df %>%
   ) +
   labs(
     title = "Confirmed Cases of COVID-19",
-    subtitle = "Number of cases for the 75 countries with the most confirmed cases of COVID-19",
+    subtitle = "Top 75 countries with the most confirmed cases of COVID-19",
     caption = custom_caption
   ) +
   theme_minimal() +
@@ -425,8 +425,8 @@ p_grob <- ggplotGrob(p)
 # Filter out unwanted facet labels
 # This will also require manually updating if new countries are added
 p_filtered <- gtable_filter_remove(p_grob, name = paste0("axis-l-", 1:13, "-1"), trim = FALSE)
-p_filtered <- gtable_filter_remove(p_filtered, name = paste0("axis-b-", 2:14, "-12"), trim = FALSE)
 p_filtered <- gtable_filter_remove(p_filtered, name = paste0("axis-b-", 2:14, "-13"), trim = FALSE)
+p_filtered <- gtable_filter_remove(p_filtered, name = paste0("axis-b-", 2:14, "-14"), trim = FALSE)
 
 # Assign grob back to plot 
 p_filtered_plot <- ggpubr::as_ggplot(p_filtered)
