@@ -1649,7 +1649,7 @@ data.frame(
 )
 
 
-read_sf(here('./data/sf_files/chicago_zips/geo_export_ebae7c39-2563-4d20-bdb6-3f3b9fb5c350.shp')) %>%
+read_sf(here::here('./data/sf_files/chicago_zips/geo_export_ebae7c39-2563-4d20-bdb6-3f3b9fb5c350.shp')) %>%
   left_join(chicago_cases %>% mutate(zip = as.character(zip)), by = "zip") %>%
   ggplot() +
   geom_sf(aes(fill = cases), colour = "grey90") +
