@@ -1,4 +1,4 @@
-Cursory analysis of COVID-19 data
+Analysis of COVID-19 data in early 2020
 ================
 Mike Jay.
 Last updated 2020-05-16
